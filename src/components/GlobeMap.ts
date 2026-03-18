@@ -75,6 +75,7 @@ interface FlightMarker extends BaseMarker {
   callsign: string;
   type: string;
   heading: number;
+  interesting?: boolean;
 }
 interface VesselMarker extends BaseMarker {
   _kind: 'vessel';
@@ -845,7 +846,7 @@ export class GlobeMap {
 
   /** Wrap marker content in an invisible 20×20px hit target for easier clicking on the globe. */
   private static wrapHit(inner: string): string {
-    return `<div style="width:20px;height:20px;display:flex;align-items:center;justify-content:center">${inner}</div>`;
+    return `<div style="min-width:28px;min-height:28px;display:flex;align-items:center;justify-content:center">${inner}</div>`;
   }
 
   private buildMarkerElement(d: GlobeMarker): HTMLElement {
@@ -884,14 +885,49 @@ export class GlobeMap {
     } else if (d._kind === 'flight') {
       const heading = d.heading ?? 0;
       const typeColors: Record<string, string> = {
-        fighter: '#ff4444', bomber: '#ff8800', recon: '#44aaff',
+        fighter: '#d26aff', bomber: '#ff8800', recon: '#44ddff',
         tanker: '#88ff44', transport: '#aaaaff', helicopter: '#ffff44',
-        drone: '#ff44ff', maritime: '#44ffff',
+        drone: '#ff44ff', maritime: '#44ffff', reconnaissance: '#44ddff',
+        awacs: '#44ddff', unknown: '#d26aff',
       };
       const color = typeColors[d.type] ?? '#cccccc';
+      const size = d.interesting ? 22 : 18;
+      const label = escapeHtml((d.callsign || 'MIL').slice(0, 8));
       el.innerHTML = GlobeMap.wrapHit(`
         <div style="transform:rotate(${heading}deg);font-size:11px;color:${color};text-shadow:0 0 4px ${color}88;line-height:1;">
           ✈
+        </div>`);
+      el.innerHTML = GlobeMap.wrapHit(`
+        <div style="position:relative;width:${size}px;height:${size}px;">
+          <div style="
+            position:absolute;inset:0;border-radius:50%;
+            background:${color}2b;
+            border:2px solid ${color};
+            box-shadow:0 0 10px 2px ${color}66;
+          "></div>
+          <div style="
+            position:absolute;inset:-5px;border-radius:50%;
+            background:${color}22;
+            ${this.pulseStyle(d.interesting ? '1.2s' : '1.8s')}
+          "></div>
+          <div style="
+            position:absolute;top:50%;left:50%;
+            transform:translate(-50%,-50%) rotate(${heading}deg);
+            font-size:${d.interesting ? 15 : 13}px;
+            color:${color};
+            text-shadow:0 0 8px ${color};
+            line-height:1;
+          ">&#9992;</div>
+          <div style="
+            position:absolute;left:50%;top:${size + 4}px;
+            transform:translateX(-50%);
+            padding:1px 4px;border-radius:999px;
+            background:rgba(5,10,20,0.82);
+            border:1px solid ${color}77;
+            color:#f7fbff;font-size:9px;font-weight:700;
+            letter-spacing:0.04em;white-space:nowrap;
+            box-shadow:0 2px 6px rgba(0,0,0,0.35);
+          ">${label}</div>
         </div>`);
       el.title = `${d.callsign} (${d.type})`;
     } else if (d._kind === 'vessel') {
@@ -1763,6 +1799,7 @@ export class GlobeMap {
       callsign: f.callsign ?? '',
       type: (f as any).aircraftType ?? (f as any).type ?? 'fighter',
       heading: (f as any).heading ?? 0,
+      interesting: Boolean((f as any).isInteresting),
     }));
     this.flushMarkers();
   }

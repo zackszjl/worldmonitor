@@ -366,10 +366,10 @@ To run everything locally (frontend + edge functions):
 ```bash
 npm install -g vercel
 cp .env.example .env.local   # Add your API keys
-vercel dev                   # Starts on http://localhost:3000
+npm run dev:vercel           # Starts on http://localhost:3000
 ```
 
-> **Important**: Use `vercel dev` instead of `npm run dev`. The Vercel CLI emulates the edge runtime locally so all `api/` endpoints work. Plain `npm run dev` only starts Vite and the API layer won't be available.
+> **Important**: Use `npm run dev:vercel` instead of plain `vercel dev`. The local script uses `vercel.local.json` and preloads root `.env.local` into the Vercel dev process, so local edge/serverless functions can read keys like `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Plain `vercel dev` can also cause Vite to parse `index.html` as a JS module and fail with `vite:import-analysis`. Plain `npm run dev` still only starts Vite, so the API layer won't be available.
 
 ### Option 3: Static Frontend Only
 
@@ -450,6 +450,18 @@ node scripts/ais-relay.cjs
 | **ICAO NOTAM**          | REST            | Airport/airspace closure detection for 46 MENA airports              |
 
 Set `WS_RELAY_URL` (server-side, HTTPS) and `VITE_WS_RELAY_URL` (client-side, WSS) in your environment. Without the relay, AIS, OpenSky, Telegram, and OREF layers won't show live data, but all other features work normally.
+
+For local development, you can start the relay with root `.env.local` values preloaded:
+
+```bash
+npm run relay:ais
+```
+
+Then start the app/API in a second terminal:
+
+```bash
+npm run dev:vercel
+```
 
 ---
 

@@ -211,7 +211,7 @@ function getOverlayColors() {
     cableDegraded: [255, 165, 0, 200] as [number, number, number, number],
     earthquake: [255, 100, 50, 200] as [number, number, number, number],
     vesselMilitary: [255, 100, 100, 220] as [number, number, number, number],
-    flightMilitary: [255, 50, 50, 220] as [number, number, number, number],
+    flightMilitary: [186, 110, 255, 235] as [number, number, number, number],
     protest: [255, 150, 0, 200] as [number, number, number, number],
     outage: [255, 50, 50, 180] as [number, number, number, number],
     weather: [100, 150, 255, 180] as [number, number, number, number],
@@ -1368,7 +1368,7 @@ export class DeckGLMap {
 
     // Military flights layer
     if (mapLayers.military && filteredMilitaryFlights.length > 0) {
-      layers.push(this.createMilitaryFlightsLayer(filteredMilitaryFlights));
+      layers.push(...this.createMilitaryFlightsLayers(filteredMilitaryFlights));
     }
 
     // Military flight clusters layer
@@ -2296,17 +2296,104 @@ export class DeckGLMap {
     });
   }
 
-  private createMilitaryFlightsLayer(flights: MilitaryFlight[]): ScatterplotLayer {
-    return new ScatterplotLayer({
+  private getMilitaryFlightColor(flight: MilitaryFlight): [number, number, number, number] {
+    if (flight.onGround) return [150, 150, 150, 170];
+    switch (flight.aircraftType) {
+      case 'bomber':
+        return [255, 140, 60, 235];
+      case 'reconnaissance':
+      case 'awacs':
+        return [70, 210, 255, 235];
+      case 'tanker':
+      case 'transport':
+        return [180, 235, 120, 230];
+      case 'drone':
+        return [255, 100, 220, 235];
+      case 'helicopter':
+        return [255, 235, 90, 230];
+      case 'unknown':
+        return [186, 110, 255, 235];
+      default:
+        return COLORS.flightMilitary;
+    }
+  }
+
+  private createMilitaryFlightsLayers(flights: MilitaryFlight[]): Layer[] {
+    const zoom = this.maplibreMap?.getZoom() || this.state.zoom || 2;
+    const layers: Layer[] = [];
+
+    layers.push(new ScatterplotLayer<MilitaryFlight>({
+      id: 'military-flight-halo-layer',
+      data: flights,
+      getPosition: (d) => [d.lon, d.lat],
+      getRadius: (d) => d.isInteresting ? 36000 : 26000,
+      getFillColor: (d) => {
+        const [r, g, b] = this.getMilitaryFlightColor(d);
+        return [r, g, b, d.isInteresting ? 90 : 55] as [number, number, number, number];
+      },
+      radiusMinPixels: 8,
+      radiusMaxPixels: 34,
+      pickable: false,
+    }));
+
+    layers.push(new IconLayer<MilitaryFlight>({
       id: 'military-flights-layer',
       data: flights,
       getPosition: (d) => [d.lon, d.lat],
-      getRadius: 8000,
-      getFillColor: COLORS.flightMilitary,
-      radiusMinPixels: 4,
-      radiusMaxPixels: 12,
+      getIcon: () => 'plane',
+      iconAtlas: MARKER_ICONS.plane,
+      iconMapping: AIRCRAFT_ICON_MAPPING,
+      getColor: (d) => this.getMilitaryFlightColor(d),
+      getAngle: (d) => -(d.heading ?? 0),
+      getSize: (d) => d.isInteresting ? 22 : d.onGround ? 16 : 20,
+      sizeMinPixels: 12,
+      sizeMaxPixels: 34,
+      sizeScale: 1,
+      billboard: false,
       pickable: true,
-    });
+    }));
+
+    layers.push(new TextLayer<MilitaryFlight>({
+      id: 'military-flight-glyphs-layer',
+      data: flights,
+      getPosition: (d) => [d.lon, d.lat],
+      getText: () => '✈',
+      getColor: (d) => this.getMilitaryFlightColor(d),
+      getSize: zoom >= 6 ? 20 : 16,
+      getPixelOffset: [0, 0],
+      getTextAnchor: 'middle',
+      getAlignmentBaseline: 'center',
+      fontFamily: 'system-ui, sans-serif',
+      fontWeight: 800,
+      billboard: true,
+      pickable: false,
+    }));
+
+    const labelData = zoom >= 5
+      ? flights
+      : [];
+
+    if (labelData.length > 0) {
+      layers.push(new TextLayer<MilitaryFlight>({
+        id: 'military-flight-labels-layer',
+        data: labelData,
+        getPosition: (d) => [d.lon, d.lat],
+        getText: (d) => d.callsign || d.hexCode,
+        getColor: [248, 251, 255, 255],
+        getSize: zoom >= 6.5 ? 13 : 11,
+        getPixelOffset: [0, 18],
+        getTextAnchor: 'middle',
+        getAlignmentBaseline: 'top',
+        background: true,
+        getBackgroundColor: [24, 8, 46, 210],
+        backgroundPadding: [5, 2, 5, 2],
+        fontFamily: 'system-ui, sans-serif',
+        fontWeight: 700,
+        pickable: false,
+      }));
+    }
+
+    return layers;
   }
 
   private createMilitaryFlightClustersLayer(clusters: MilitaryFlightCluster[]): ScatterplotLayer {
@@ -3254,7 +3341,7 @@ export class DeckGLMap {
       case 'military-vessels-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name)}</strong><br/>${text(obj.operatorCountry)}</div>` };
       case 'military-flights-layer':
-        return { html: `<div class="deckgl-tooltip"><strong>${text(obj.callsign || obj.registration || t('components.deckgl.tooltip.militaryAircraft'))}</strong><br/>${text(obj.type)}</div>` };
+        return { html: `<div class="deckgl-tooltip"><strong>${text(obj.callsign || obj.registration || t('components.deckgl.tooltip.militaryAircraft'))}</strong><br/>${text(obj.aircraftType || obj.type)}</div>` };
       case 'military-vessel-clusters-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name || t('components.deckgl.tooltip.vesselCluster'))}</strong><br/>${obj.vesselCount || 0} ${t('components.deckgl.tooltip.vessels')}<br/>${text(obj.activityType)}</div>` };
       case 'military-flight-clusters-layer':
