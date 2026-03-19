@@ -36,8 +36,11 @@ export async function fetchBootstrapData(): Promise<void> {
   // Desktop needs longer timeouts: fetch patch resolves port + token via IPC,
   // then sidecar proxies to cloud. The extra hops easily exceed 3s.
   const desktop = isDesktopRuntime();
-  const fastTimeout = setTimeout(() => fastCtrl.abort(), desktop ? 8_000 : 3_000);
-  const slowTimeout = setTimeout(() => slowCtrl.abort(), desktop ? 12_000 : 5_000);
+  const localWeb = !desktop
+    && typeof window !== 'undefined'
+    && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+  const fastTimeout = setTimeout(() => fastCtrl.abort(), (desktop || localWeb) ? 8_000 : 3_000);
+  const slowTimeout = setTimeout(() => slowCtrl.abort(), (desktop || localWeb) ? 12_000 : 5_000);
   try {
     await Promise.all([
       fetchTier('slow', slowCtrl.signal),

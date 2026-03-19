@@ -451,12 +451,15 @@ export class App {
 
   public async init(): Promise<void> {
     const initStart = performance.now();
-    await initDB();
+    void initDB().catch((error) => {
+      console.warn('[App] initDB failed (continuing without blocking):', error);
+    });
     await initI18n();
     const aiFlow = getAiFlowSettings();
     if (aiFlow.browserModel || isDesktopRuntime()) {
-      await mlWorker.init();
-      if (BETA_MODE) mlWorker.loadModel('summarization-beta').catch(() => { });
+      mlWorker.init().then((ok) => {
+        if (ok && BETA_MODE) mlWorker.loadModel('summarization-beta').catch(() => { });
+      }).catch(() => {});
     }
 
     if (aiFlow.headlineMemory) {
@@ -502,19 +505,22 @@ export class App {
     }
 
     // Hydrate in-memory cache from bootstrap endpoint (before panels construct and fetch)
-    await fetchBootstrapData();
+    const bootstrapPromise = fetchBootstrapData();
 
     const geoCoordsPromise: Promise<PreciseCoordinates | null> =
       this.state.isMobile && this.state.initialUrlState?.lat === undefined && this.state.initialUrlState?.lon === undefined
         ? resolvePreciseUserCoordinates(5000)
         : Promise.resolve(null);
 
-    const resolvedRegion = await resolveUserRegion();
-    this.state.resolvedLocation = resolvedRegion;
+    const regionPromise = resolveUserRegion();
 
     // Phase 1: Layout (creates map + panels — they'll find hydrated data)
     this.panelLayout.init();
     showProBanner(this.state.container);
+
+    const resolvedRegion = await regionPromise;
+    this.state.resolvedLocation = resolvedRegion;
+    this.state.map?.setView(resolvedRegion);
 
     const mobileGeoCoords = await geoCoordsPromise;
     if (mobileGeoCoords && this.state.map) {
@@ -583,9 +589,18 @@ export class App {
 
     // Phase 6: Data loading
     this.dataLoader.syncDataFreshnessWithLayers();
-    await preloadCountryGeometry();
-    await this.dataLoader.loadAllData(true);
-    await this.primeVisiblePanelData(true);
+    void preloadCountryGeometry();
+    void bootstrapPromise;
+    window.setTimeout(() => {
+      if (this.state.isDestroyed) return;
+      void this.dataLoader.loadAllData(false);
+      void this.primeVisiblePanelData(false);
+      window.setTimeout(() => {
+        if (this.state.isDestroyed) return;
+        void this.dataLoader.loadAllData(true);
+        void this.primeVisiblePanelData(true);
+      }, 600);
+    }, 0);
     window.addEventListener('scroll', this.handleViewportPrime, { passive: true });
     window.addEventListener('resize', this.handleViewportPrime);
 
