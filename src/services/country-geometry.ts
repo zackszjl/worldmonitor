@@ -12,7 +12,25 @@ interface CountryHit {
   name: string;
 }
 
-const COUNTRY_GEOJSON_URL = 'https://maps.worldmonitor.app/countries.geojson';
+const COUNTRY_GEOJSON_REMOTE_URL = 'https://maps.worldmonitor.app/countries.geojson';
+
+function resolveCountriesGeoJsonUrl(): string {
+  if (typeof window === 'undefined') return COUNTRY_GEOJSON_REMOTE_URL;
+
+  const hostname = window.location?.hostname ?? '';
+  if (
+    hostname === 'worldmonitor.app'
+    || hostname === 'www.worldmonitor.app'
+    || hostname.endsWith('.worldmonitor.app')
+    || hostname.endsWith('.vercel.app')
+  ) {
+    return '/api/maps/countries';
+  }
+
+  return COUNTRY_GEOJSON_REMOTE_URL;
+}
+
+const COUNTRY_GEOJSON_URL = resolveCountriesGeoJsonUrl();
 
 /** Optional higher-resolution boundary overrides sourced from Natural Earth (served from R2 CDN). */
 const COUNTRY_OVERRIDES_URL = 'https://maps.worldmonitor.app/country-boundary-overrides.geojson';

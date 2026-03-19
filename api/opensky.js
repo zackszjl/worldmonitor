@@ -4,7 +4,7 @@ export const config = { runtime: 'edge' };
 
 export default createRelayHandler({
   relayPath: '/opensky',
-  timeout: 20000,
+  timeout: 45000,
   cacheHeaders: () => ({
     'Cache-Control': 'public, s-maxage=120, stale-while-revalidate=60, stale-if-error=300',
   }),
