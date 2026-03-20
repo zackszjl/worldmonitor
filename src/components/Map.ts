@@ -3672,14 +3672,44 @@ export class MapComponent {
   }
 
   public setMilitaryFlights(flights: MilitaryFlight[], clusters: MilitaryFlightCluster[] = []): void {
-    this.militaryFlights = flights;
-    this.militaryFlightClusters = clusters;
+    const cutoff = this.state.timeRange === 'all' ? -Infinity : Date.now() - this.getTimeRangeMs();
+    this.militaryFlights = this.state.timeRange === 'all'
+      ? flights
+      : flights.filter((flight) => flight.lastSeen.getTime() >= cutoff);
+    this.militaryFlightClusters = this.state.timeRange === 'all'
+      ? clusters
+      : clusters
+        .map((cluster) => {
+          const inRangeFlights = (cluster.flights ?? []).filter((flight) => flight.lastSeen.getTime() >= cutoff);
+          if (inRangeFlights.length === 0) return null;
+          return {
+            ...cluster,
+            flights: inRangeFlights,
+            flightCount: inRangeFlights.length,
+          };
+        })
+        .filter((cluster): cluster is MilitaryFlightCluster => cluster !== null);
     this.render();
   }
 
   public setMilitaryVessels(vessels: MilitaryVessel[], clusters: MilitaryVesselCluster[] = []): void {
-    this.militaryVessels = vessels;
-    this.militaryVesselClusters = clusters;
+    const cutoff = this.state.timeRange === 'all' ? -Infinity : Date.now() - this.getTimeRangeMs();
+    this.militaryVessels = this.state.timeRange === 'all'
+      ? vessels
+      : vessels.filter((vessel) => vessel.lastAisUpdate.getTime() >= cutoff);
+    this.militaryVesselClusters = this.state.timeRange === 'all'
+      ? clusters
+      : clusters
+        .map((cluster) => {
+          const inRangeVessels = (cluster.vessels ?? []).filter((vessel) => vessel.lastAisUpdate.getTime() >= cutoff);
+          if (inRangeVessels.length === 0) return null;
+          return {
+            ...cluster,
+            vessels: inRangeVessels,
+            vesselCount: inRangeVessels.length,
+          };
+        })
+        .filter((cluster): cluster is MilitaryVesselCluster => cluster !== null);
     this.render();
   }
 

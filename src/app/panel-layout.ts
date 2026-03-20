@@ -571,21 +571,22 @@ export class PanelLayoutManager implements AppModule {
 
     this.createPanel('gdelt-intel', () => new GdeltIntelPanel());
 
-    if (SITE_VARIANT === 'full' && this.ctx.isDesktopApp) {
+    if (this.shouldCreatePanel('deduction')) {
       import('@/components/DeductionPanel').then(({ DeductionPanel }) => {
         const deductionPanel = new DeductionPanel(() => this.ctx.allNews);
         this.ctx.panels['deduction'] = deductionPanel;
         const el = deductionPanel.getElement();
         this.makeDraggable(el, 'deduction');
-        const grid = document.getElementById('panelsGrid');
-        if (grid) {
-          const gdeltEl = this.ctx.panels['gdelt-intel']?.getElement();
-          if (gdeltEl?.nextSibling) {
-            grid.insertBefore(el, gdeltEl.nextSibling);
-          } else {
-            grid.appendChild(el);
-          }
+
+        const bottomGrid = document.getElementById('mapBottomGrid');
+        if (bottomGrid && this.getEffectiveUltraWide() && this.bottomSetMemory.has('deduction')) {
+          this.insertByOrder(bottomGrid, el, 'deduction');
+          return;
         }
+
+        const grid = document.getElementById('panelsGrid');
+        if (!grid) return;
+        this.insertByOrder(grid, el, 'deduction');
       });
     }
 

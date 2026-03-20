@@ -210,31 +210,46 @@ async function fetchFromRedis(): Promise<MilitaryFlight[]> {
 }
 
 async function fetchFromMilitaryService(): Promise<MilitaryFlight[]> {
-  const responses = await Promise.all(MILITARY_QUERY_REGIONS.map(async (region) => {
-    const params = new URLSearchParams({
-      sw_lat: String(region.lamin),
-      sw_lon: String(region.lomin),
-      ne_lat: String(region.lamax),
-      ne_lon: String(region.lomax),
-      page_size: '100',
-    });
-    const response = await fetch(`${MILITARY_SERVICE_URL}?${params.toString()}`, {
-      headers: { Accept: 'application/json' },
-    });
-    if (!response.ok) {
-      throw new Error(`military service ${response.status}`);
-    }
-    return await response.json() as RpcListMilitaryFlightsResponse;
-  }));
-
   const deduped = new Map<string, MilitaryFlight>();
-  for (const result of responses) {
-    for (const flight of result.flights ?? []) {
-      const mapped = mapRpcFlight(flight);
-      if (!mapped) continue;
-      deduped.set(mapped.hexCode, mapped);
+
+  await Promise.all(MILITARY_QUERY_REGIONS.map(async (region) => {
+    let cursor = '';
+    let pageGuard = 0;
+
+    while (pageGuard < 20) {
+      pageGuard += 1;
+      const params = new URLSearchParams({
+        sw_lat: String(region.lamin),
+        sw_lon: String(region.lomin),
+        ne_lat: String(region.lamax),
+        ne_lon: String(region.lomax),
+        page_size: '100',
+      });
+      if (cursor) {
+        params.set('cursor', cursor);
+      }
+
+      const response = await fetch(`${MILITARY_SERVICE_URL}?${params.toString()}`, {
+        headers: { Accept: 'application/json' },
+      });
+      if (!response.ok) {
+        throw new Error(`military service ${response.status}`);
+      }
+
+      const result = await response.json() as RpcListMilitaryFlightsResponse;
+      for (const flight of result.flights ?? []) {
+        const mapped = mapRpcFlight(flight);
+        if (!mapped) continue;
+        deduped.set(mapped.hexCode, mapped);
+      }
+
+      const nextCursor = result.pagination?.nextCursor || '';
+      if (!nextCursor || nextCursor === cursor) {
+        break;
+      }
+      cursor = nextCursor;
     }
-  }
+  }));
 
   return [...deduped.values()];
 }

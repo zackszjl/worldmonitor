@@ -82,6 +82,11 @@ Set these before enabling strict relay auth.
 | `AIS_UPSTREAM_QUEUE_HARD_CAP` | Railway | `8000` (must be `> HIGH_WATER`) | No | Max queue size before dropping incoming upstream messages. |
 | `AIS_UPSTREAM_DRAIN_BATCH` | Railway | `250` (min `1`) | No | Max messages drained per cycle. |
 | `AIS_UPSTREAM_DRAIN_BUDGET_MS` | Railway | `20` (min `2`) | No | Max CPU time budget per drain cycle. |
+| `AIS_DENSITY_WINDOW_MS` | Railway | `3600000` (min `300000`) | No | Time window used to keep active vessels in AIS density aggregation. |
+| `AIS_MIN_VESSELS_PER_DENSITY_CELL` | Railway | `1` (min `1`) | No | Minimum vessels in a grid cell before it appears in density output. |
+| `AIS_MAX_DENSITY_CELLS` | Railway | `12000` (min `2000`) | No | Max density grid cells retained in relay memory before LRU-style eviction. |
+| `AIS_MAX_DENSITY_ZONES` | Railway | `1200` (min `100`) | No | Max density zones returned in each snapshot payload. |
+| `AIS_MAX_CANDIDATE_REPORTS` | Railway | `5000` (min `1000`) | No | Max candidate military vessel reports returned in snapshot payload when requested. |
 
 ## Rate Limit / Logging / Metrics
 
@@ -128,6 +133,11 @@ AIS_UPSTREAM_QUEUE_LOW_WATER=1500
 AIS_UPSTREAM_QUEUE_HARD_CAP=10000
 AIS_UPSTREAM_DRAIN_BATCH=300
 AIS_UPSTREAM_DRAIN_BUDGET_MS=20
+AIS_DENSITY_WINDOW_MS=3600000
+AIS_MIN_VESSELS_PER_DENSITY_CELL=1
+AIS_MAX_DENSITY_CELLS=12000
+AIS_MAX_DENSITY_ZONES=1200
+AIS_MAX_CANDIDATE_REPORTS=5000
 
 # Rate limits + metrics
 RELAY_RATE_LIMIT_WINDOW_MS=60000
