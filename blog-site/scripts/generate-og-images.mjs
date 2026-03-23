@@ -8,18 +8,71 @@ const BLOG_DIR = join(import.meta.dirname, '..', 'src', 'content', 'blog');
 const OUT_DIR = join(import.meta.dirname, '..', 'public', 'og');
 const WIDTH = 1200;
 const HEIGHT = 630;
-
-const interRegular = await fetch('https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuLyfMZg.ttf').then(r => r.arrayBuffer());
-const interBold = await fetch('https://fonts.gstatic.com/s/inter/v20/UcCO3FwrK3iLTeHuS_nVMrMxCp50SjIw2boKoduKmMEVuFuYMZg.ttf').then(r => r.arrayBuffer());
+const FONT_NAME = 'OG Sans';
 
 mkdirSync(OUT_DIR, { recursive: true });
 
 const files = readdirSync(BLOG_DIR).filter(f => f.endsWith('.md'));
 let generated = 0;
+let skipped = 0;
+const pendingFiles = [];
 
 function h(type, style, children) {
   return { type, props: { style, children } };
 }
+
+function toArrayBuffer(buffer) {
+  return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+}
+
+function firstExistingPath(paths) {
+  return paths.find(fontPath => fontPath && existsSync(fontPath)) ?? null;
+}
+
+function loadFont(weight, envKey, candidates) {
+  const fontPath = firstExistingPath([process.env[envKey], ...candidates]);
+  if (!fontPath) {
+    throw new Error(
+      `Unable to find a local ${weight} font for OG generation. ` +
+      `Set ${envKey} to a .ttf/.otf font file path to continue.`
+    );
+  }
+
+  return {
+    data: toArrayBuffer(readFileSync(fontPath)),
+    path: fontPath,
+  };
+}
+
+const fontDir = process.env.WM_OG_FONT_DIR;
+const regularCandidates = [
+  fontDir ? join(fontDir, 'Inter-Regular.ttf') : null,
+  fontDir ? join(fontDir, 'Arial.ttf') : null,
+  join(import.meta.dirname, '..', 'public', 'fonts', 'Inter-Regular.ttf'),
+  join(import.meta.dirname, '..', 'assets', 'fonts', 'Inter-Regular.ttf'),
+  'C:\\Windows\\Fonts\\arial.ttf',
+  'C:\\Windows\\Fonts\\segoeui.ttf',
+  'C:\\Windows\\Fonts\\calibri.ttf',
+  '/System/Library/Fonts/Supplemental/Arial.ttf',
+  '/Library/Fonts/Arial.ttf',
+  '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf',
+  '/usr/share/fonts/dejavu/DejaVuSans.ttf',
+  '/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf',
+].filter(Boolean);
+const boldCandidates = [
+  fontDir ? join(fontDir, 'Inter-Bold.ttf') : null,
+  fontDir ? join(fontDir, 'Arial-Bold.ttf') : null,
+  join(import.meta.dirname, '..', 'public', 'fonts', 'Inter-Bold.ttf'),
+  join(import.meta.dirname, '..', 'assets', 'fonts', 'Inter-Bold.ttf'),
+  'C:\\Windows\\Fonts\\arialbd.ttf',
+  'C:\\Windows\\Fonts\\segoeuib.ttf',
+  'C:\\Windows\\Fonts\\calibrib.ttf',
+  '/System/Library/Fonts/Supplemental/Arial Bold.ttf',
+  '/Library/Fonts/Arial Bold.ttf',
+  '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf',
+  '/usr/share/fonts/dejavu/DejaVuSans-Bold.ttf',
+  '/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf',
+].filter(Boolean);
 
 for (const file of files) {
   const slug = basename(file, '.md');
@@ -27,9 +80,24 @@ for (const file of files) {
 
   if (existsSync(outPath)) {
     console.log(`  skip ${slug} (exists)`);
+    skipped++;
     continue;
   }
 
+  pendingFiles.push({ file, slug, outPath });
+}
+
+if (pendingFiles.length === 0) {
+  console.log(`\nOG images: ${generated} generated, ${skipped} skipped`);
+  process.exit(0);
+}
+
+const regularFont = loadFont('regular', 'WM_OG_FONT_REGULAR', regularCandidates);
+const boldFont = loadFont('bold', 'WM_OG_FONT_BOLD', boldCandidates);
+
+console.log(`[og] using fonts: ${regularFont.path} | ${boldFont.path}`);
+
+for (const { file, slug, outPath } of pendingFiles) {
   const raw = readFileSync(join(BLOG_DIR, file), 'utf-8');
   const { data } = matter(raw);
   const title = data.title || slug;
@@ -64,7 +132,7 @@ for (const file of files) {
     justifyContent: 'space-between',
     padding: '60px 72px',
     backgroundColor: '#050505',
-    fontFamily: 'Inter',
+    fontFamily: FONT_NAME,
     color: '#ffffff',
   }, [
     h('div', { display: 'flex', alignItems: 'center', gap: 16 }, [
@@ -111,8 +179,8 @@ for (const file of files) {
     width: WIDTH,
     height: HEIGHT,
     fonts: [
-      { name: 'Inter', data: interRegular, weight: 400, style: 'normal' },
-      { name: 'Inter', data: interBold, weight: 700, style: 'normal' },
+      { name: FONT_NAME, data: regularFont.data, weight: 400, style: 'normal' },
+      { name: FONT_NAME, data: boldFont.data, weight: 700, style: 'normal' },
     ],
   });
 
@@ -122,4 +190,4 @@ for (const file of files) {
   generated++;
 }
 
-console.log(`\nOG images: ${generated} generated, ${files.length - generated} skipped`);
+console.log(`\nOG images: ${generated} generated, ${skipped} skipped`);
