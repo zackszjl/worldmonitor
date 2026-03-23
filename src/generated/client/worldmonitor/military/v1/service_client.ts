@@ -233,6 +233,61 @@ export interface MilitaryBaseCluster {
   expansionZoom: number;
 }
 
+export interface ListForceCompositionsRequest {
+  neLat: number;
+  neLon: number;
+  swLat: number;
+  swLon: number;
+  zoom: number;
+  side: string[];
+  echelon: string[];
+}
+
+export interface ListForceCompositionsResponse {
+  entries: ForceCompositionEntry[];
+  clusters: ForceCompositionCluster[];
+  totalInView: number;
+  truncated: boolean;
+  datasetVersion: string;
+  updatedAt: string;
+}
+
+export interface ForceCompositionEntry {
+  id: string;
+  name: string;
+  side: string;
+  branch: string;
+  unitType: string;
+  echelon: string;
+  personnelEstimate: number;
+  parentId: string;
+  parentName: string;
+  childCount: number;
+  displayLatitude: number;
+  displayLongitude: number;
+  displayPositionType: string;
+  hqLatitude: number;
+  hqLongitude: number;
+  deploymentLatitude: number;
+  deploymentLongitude: number;
+  countryIso2: string;
+  notes: string;
+  aliases: string[];
+  status: string;
+  readiness: string;
+  equipmentSummary: string[];
+  sourceRefs: string[];
+}
+
+export interface ForceCompositionCluster {
+  latitude: number;
+  longitude: number;
+  count: number;
+  side: string;
+  dominantEchelon: string;
+  expansionZoom: number;
+}
+
 export type MilitaryActivityType = "MILITARY_ACTIVITY_TYPE_UNSPECIFIED" | "MILITARY_ACTIVITY_TYPE_EXERCISE" | "MILITARY_ACTIVITY_TYPE_PATROL" | "MILITARY_ACTIVITY_TYPE_TRANSPORT" | "MILITARY_ACTIVITY_TYPE_DEPLOYMENT" | "MILITARY_ACTIVITY_TYPE_TRANSIT" | "MILITARY_ACTIVITY_TYPE_UNKNOWN";
 
 export type MilitaryAircraftType = "MILITARY_AIRCRAFT_TYPE_UNSPECIFIED" | "MILITARY_AIRCRAFT_TYPE_FIGHTER" | "MILITARY_AIRCRAFT_TYPE_BOMBER" | "MILITARY_AIRCRAFT_TYPE_TRANSPORT" | "MILITARY_AIRCRAFT_TYPE_TANKER" | "MILITARY_AIRCRAFT_TYPE_AWACS" | "MILITARY_AIRCRAFT_TYPE_RECONNAISSANCE" | "MILITARY_AIRCRAFT_TYPE_HELICOPTER" | "MILITARY_AIRCRAFT_TYPE_DRONE" | "MILITARY_AIRCRAFT_TYPE_PATROL" | "MILITARY_AIRCRAFT_TYPE_SPECIAL_OPS" | "MILITARY_AIRCRAFT_TYPE_VIP" | "MILITARY_AIRCRAFT_TYPE_UNKNOWN";
@@ -473,6 +528,37 @@ export class MilitaryServiceClient {
     }
 
     return await resp.json() as ListMilitaryBasesResponse;
+  }
+
+  async listForceCompositions(req: ListForceCompositionsRequest, options?: MilitaryServiceCallOptions): Promise<ListForceCompositionsResponse> {
+    let path = "/api/military/v1/list-force-compositions";
+    const params = new URLSearchParams();
+    if (req.neLat != null && req.neLat !== 0) params.set("ne_lat", String(req.neLat));
+    if (req.neLon != null && req.neLon !== 0) params.set("ne_lon", String(req.neLon));
+    if (req.swLat != null && req.swLat !== 0) params.set("sw_lat", String(req.swLat));
+    if (req.swLon != null && req.swLon !== 0) params.set("sw_lon", String(req.swLon));
+    if (req.zoom != null && req.zoom !== 0) params.set("zoom", String(req.zoom));
+    if (Array.isArray(req.side)) req.side.forEach((value) => { if (value) params.append("side[]", String(value)); });
+    if (Array.isArray(req.echelon)) req.echelon.forEach((value) => { if (value) params.append("echelon[]", String(value)); });
+    const url = this.baseURL + path + (params.toString() ? "?" + params.toString() : "");
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      ...this.defaultHeaders,
+      ...options?.headers,
+    };
+
+    const resp = await this.fetchFn(url, {
+      method: "GET",
+      headers,
+      signal: options?.signal,
+    });
+
+    if (!resp.ok) {
+      return this.handleError(resp);
+    }
+
+    return await resp.json() as ListForceCompositionsResponse;
   }
 
   private async handleError(resp: Response): Promise<never> {

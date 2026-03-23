@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package worldmonitor.military.v1;
+
+import "sebuf/http/annotations.proto";
+
+message ListForceCompositionsRequest {
+  double ne_lat = 1 [(sebuf.http.query) = { name: "ne_lat" }];
+  double ne_lon = 2 [(sebuf.http.query) = { name: "ne_lon" }];
+  double sw_lat = 3 [(sebuf.http.query) = { name: "sw_lat" }];
+  double sw_lon = 4 [(sebuf.http.query) = { name: "sw_lon" }];
+  int32 zoom = 5 [(sebuf.http.query) = { name: "zoom" }];
+  repeated string side = 6 [(sebuf.http.query) = { name: "side" }];
+  repeated string echelon = 7 [(sebuf.http.query) = { name: "echelon" }];
+}
+
+message ForceCompositionEntry {
+  string id = 1;
+  string name = 2;
+  string side = 3;
+  string branch = 4;
+  string unit_type = 5;
+  string echelon = 6;
+  int32 personnel_estimate = 7;
+  string parent_id = 8;
+  string parent_name = 9;
+  int32 child_count = 10;
+  double display_latitude = 11;
+  double display_longitude = 12;
+  string display_position_type = 13;
+  double hq_latitude = 14;
+  double hq_longitude = 15;
+  double deployment_latitude = 16;
+  double deployment_longitude = 17;
+  string country_iso2 = 18;
+  string notes = 19;
+  repeated string aliases = 20;
+  string status = 21;
+  string readiness = 22;
+  repeated string equipment_summary = 23;
+  repeated string source_refs = 24;
+}
+
+message ForceCompositionCluster {
+  double latitude = 1;
+  double longitude = 2;
+  int32 count = 3;
+  string side = 4;
+  string dominant_echelon = 5;
+  int32 expansion_zoom = 6;
+}
+
+message ListForceCompositionsResponse {
+  repeated ForceCompositionEntry entries = 1;
+  repeated ForceCompositionCluster clusters = 2;
+  int32 total_in_view = 3;
+  bool truncated = 4;
+  string dataset_version = 5;
+  string updated_at = 6;
+}

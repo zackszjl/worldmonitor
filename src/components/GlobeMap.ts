@@ -450,6 +450,18 @@ export class GlobeMap {
   private timeRange: TimeRange;
   private currentView: MapView = 'global';
 
+  private getTimeRangeMs(): number {
+    const ranges: Record<TimeRange, number> = {
+      '1h': 60 * 60 * 1000,
+      '6h': 6 * 60 * 60 * 1000,
+      '24h': 24 * 60 * 60 * 1000,
+      '48h': 48 * 60 * 60 * 1000,
+      '7d': 7 * 24 * 60 * 60 * 1000,
+      'all': Infinity,
+    };
+    return ranges[this.timeRange];
+  }
+
   // Click callbacks
   private onHotspotClickCb: ((h: Hotspot) => void) | null = null;
 
@@ -1791,7 +1803,11 @@ export class GlobeMap {
   }
 
   public setMilitaryFlights(flights: MilitaryFlight[]): void {
-    this.flights = flights.map(f => ({
+    const cutoff = this.timeRange === 'all' ? -Infinity : Date.now() - this.getTimeRangeMs();
+    const filtered = this.timeRange === 'all'
+      ? flights
+      : flights.filter((flight) => flight.lastSeen.getTime() >= cutoff);
+    this.flights = filtered.map(f => ({
       _kind: 'flight' as const,
       _lat: f.lat,
       _lng: f.lon,
@@ -1805,7 +1821,11 @@ export class GlobeMap {
   }
 
   public setMilitaryVessels(vessels: MilitaryVessel[]): void {
-    this.vessels = vessels.map(v => ({
+    const cutoff = this.timeRange === 'all' ? -Infinity : Date.now() - this.getTimeRangeMs();
+    const filtered = this.timeRange === 'all'
+      ? vessels
+      : vessels.filter((vessel) => vessel.lastAisUpdate.getTime() >= cutoff);
+    this.vessels = filtered.map(v => ({
       _kind: 'vessel' as const,
       _lat: v.lat,
       _lng: v.lon,

@@ -1,0 +1,74 @@
+﻿{
+    "ollamaTagsOk":  true,
+    "ollamaTagsError":  null,
+    "ok":  true,
+    "ollamaModels":  [
+                         "llama3:latest",
+                         "gpt-oss:120b-cloud"
+                     ],
+    "summarize":  null,
+    "dev":  {
+                "port":  null
+            },
+    "relay":  {
+                  "healthOk":  true,
+                  "healthBody":  {
+                                     "status":  "ok",
+                                     "clients":  0,
+                                     "messages":  0,
+                                     "droppedMessages":  0,
+                                     "connected":  false,
+                                     "upstreamPaused":  false,
+                                     "vessels":  0,
+                                     "densityZones":  0,
+                                     "telegram":  {
+                                                      "enabled":  false,
+                                                      "channels":  0,
+                                                      "items":  0,
+                                                      "lastPollAt":  null,
+                                                      "hasError":  false,
+                                                      "lastError":  null,
+                                                      "pollInFlight":  false,
+                                                      "pollInFlightSince":  null
+                                                  },
+                                     "oref":  {
+                                                  "enabled":  false,
+                                                  "alertCount":  0,
+                                                  "historyCount24h":  0,
+                                                  "totalHistoryCount":  0,
+                                                  "historyWaves":  0,
+                                                  "lastPollAt":  null,
+                                                  "hasError":  false,
+                                                  "redisEnabled":  true,
+                                                  "bootstrapSource":  null
+                                              },
+                                     "memory":  {
+                                                    "rss":  "58MB",
+                                                    "heapUsed":  "10MB",
+                                                    "heapTotal":  "14MB"
+                                                },
+                                     "cache":  {
+                                                   "opensky":  0,
+                                                   "opensky_neg":  0,
+                                                   "rss":  0,
+                                                   "ucdp":  "cold",
+                                                   "worldbank":  0,
+                                                   "polymarket":  0,
+                                                   "yahooChart":  0,
+                                                   "polymarketInflight":  0
+                                               },
+                                     "auth":  {
+                                                  "sharedSecretEnabled":  true,
+                                                  "authHeader":  "x-relay-key",
+                                                  "allowVercelPreviewOrigins":  false
+                                              },
+                                     "rateLimit":  {
+                                                       "windowMs":  60000,
+                                                       "defaultMax":  1200,
+                                                       "openskyMax":  600,
+                                                       "rssMax":  300
+                                                   }
+                                 }
+              },
+    "summarizeError":  null
+}

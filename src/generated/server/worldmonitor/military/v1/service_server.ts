@@ -233,6 +233,61 @@ export interface MilitaryBaseCluster {
   expansionZoom: number;
 }
 
+export interface ListForceCompositionsRequest {
+  neLat: number;
+  neLon: number;
+  swLat: number;
+  swLon: number;
+  zoom: number;
+  side: string[];
+  echelon: string[];
+}
+
+export interface ListForceCompositionsResponse {
+  entries: ForceCompositionEntry[];
+  clusters: ForceCompositionCluster[];
+  totalInView: number;
+  truncated: boolean;
+  datasetVersion: string;
+  updatedAt: string;
+}
+
+export interface ForceCompositionEntry {
+  id: string;
+  name: string;
+  side: string;
+  branch: string;
+  unitType: string;
+  echelon: string;
+  personnelEstimate: number;
+  parentId: string;
+  parentName: string;
+  childCount: number;
+  displayLatitude: number;
+  displayLongitude: number;
+  displayPositionType: string;
+  hqLatitude: number;
+  hqLongitude: number;
+  deploymentLatitude: number;
+  deploymentLongitude: number;
+  countryIso2: string;
+  notes: string;
+  aliases: string[];
+  status: string;
+  readiness: string;
+  equipmentSummary: string[];
+  sourceRefs: string[];
+}
+
+export interface ForceCompositionCluster {
+  latitude: number;
+  longitude: number;
+  count: number;
+  side: string;
+  dominantEchelon: string;
+  expansionZoom: number;
+}
+
 export type MilitaryActivityType = "MILITARY_ACTIVITY_TYPE_UNSPECIFIED" | "MILITARY_ACTIVITY_TYPE_EXERCISE" | "MILITARY_ACTIVITY_TYPE_PATROL" | "MILITARY_ACTIVITY_TYPE_TRANSPORT" | "MILITARY_ACTIVITY_TYPE_DEPLOYMENT" | "MILITARY_ACTIVITY_TYPE_TRANSIT" | "MILITARY_ACTIVITY_TYPE_UNKNOWN";
 
 export type MilitaryAircraftType = "MILITARY_AIRCRAFT_TYPE_UNSPECIFIED" | "MILITARY_AIRCRAFT_TYPE_FIGHTER" | "MILITARY_AIRCRAFT_TYPE_BOMBER" | "MILITARY_AIRCRAFT_TYPE_TRANSPORT" | "MILITARY_AIRCRAFT_TYPE_TANKER" | "MILITARY_AIRCRAFT_TYPE_AWACS" | "MILITARY_AIRCRAFT_TYPE_RECONNAISSANCE" | "MILITARY_AIRCRAFT_TYPE_HELICOPTER" | "MILITARY_AIRCRAFT_TYPE_DRONE" | "MILITARY_AIRCRAFT_TYPE_PATROL" | "MILITARY_AIRCRAFT_TYPE_SPECIAL_OPS" | "MILITARY_AIRCRAFT_TYPE_VIP" | "MILITARY_AIRCRAFT_TYPE_UNKNOWN";
@@ -293,6 +348,7 @@ export interface MilitaryServiceHandler {
   getWingbitsStatus(ctx: ServerContext, req: GetWingbitsStatusRequest): Promise<GetWingbitsStatusResponse>;
   getUSNIFleetReport(ctx: ServerContext, req: GetUSNIFleetReportRequest): Promise<GetUSNIFleetReportResponse>;
   listMilitaryBases(ctx: ServerContext, req: ListMilitaryBasesRequest): Promise<ListMilitaryBasesResponse>;
+  listForceCompositions(ctx: ServerContext, req: ListForceCompositionsRequest): Promise<ListForceCompositionsResponse>;
 }
 
 export function createMilitaryServiceRoutes(
@@ -608,6 +664,59 @@ export function createMilitaryServiceRoutes(
 
           const result = await handler.listMilitaryBases(ctx, body);
           return new Response(JSON.stringify(result as ListMilitaryBasesResponse), {
+            status: 200,
+            headers: { "Content-Type": "application/json" },
+          });
+        } catch (err: unknown) {
+          if (err instanceof ValidationError) {
+            return new Response(JSON.stringify({ violations: err.violations }), {
+              status: 400,
+              headers: { "Content-Type": "application/json" },
+            });
+          }
+          if (options?.onError) {
+            return options.onError(err, req);
+          }
+          const message = err instanceof Error ? err.message : String(err);
+          return new Response(JSON.stringify({ message }), {
+            status: 500,
+            headers: { "Content-Type": "application/json" },
+          });
+        }
+      },
+    },
+    {
+      method: "GET",
+      path: "/api/military/v1/list-force-compositions",
+      handler: async (req: Request): Promise<Response> => {
+        try {
+          const pathParams: Record<string, string> = {};
+          const url = new URL(req.url, "http://localhost");
+          const params = url.searchParams;
+          const body: ListForceCompositionsRequest = {
+            neLat: Number(params.get("ne_lat") ?? "0"),
+            neLon: Number(params.get("ne_lon") ?? "0"),
+            swLat: Number(params.get("sw_lat") ?? "0"),
+            swLon: Number(params.get("sw_lon") ?? "0"),
+            zoom: Number(params.get("zoom") ?? "0"),
+            side: [...params.getAll("side"), ...params.getAll("side[]")],
+            echelon: [...params.getAll("echelon"), ...params.getAll("echelon[]")],
+          };
+          if (options?.validateRequest) {
+            const bodyViolations = options.validateRequest("listForceCompositions", body);
+            if (bodyViolations) {
+              throw new ValidationError(bodyViolations);
+            }
+          }
+
+          const ctx: ServerContext = {
+            request: req,
+            pathParams,
+            headers: Object.fromEntries(req.headers.entries()),
+          };
+
+          const result = await handler.listForceCompositions(ctx, body);
+          return new Response(JSON.stringify(result as ListForceCompositionsResponse), {
             status: 200,
             headers: { "Content-Type": "application/json" },
           });

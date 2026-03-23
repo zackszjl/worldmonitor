@@ -30,6 +30,7 @@ export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
   conflicts:                def('conflicts',                '&#9876;',   'conflictZones',            'Conflict Zones'),
 
   bases:                    def('bases',                    '&#127963;', 'militaryBases',            'Military Bases'),
+  forceCompositions:        def('forceCompositions',        '&#9876;',   'forceCompositions',        '兵力编成', ['flat']),
   nuclear:                  def('nuclear',                  '&#9762;',   'nuclearSites',             'Nuclear Sites'),
   irradiators:              def('irradiators',              '&#9888;',   'gammaIrradiators',         'Gamma Irradiators'),
   spaceports:               def('spaceports',               '&#128640;', 'spaceports',               'Spaceports'),
@@ -81,7 +82,7 @@ export const LAYER_REGISTRY: Record<keyof MapLayers, LayerDefinition> = {
 const VARIANT_LAYER_ORDER: Record<MapVariant, Array<keyof MapLayers>> = {
   full: [
     'iranAttacks', 'hotspots', 'conflicts',
-    'bases', 'nuclear', 'irradiators', 'spaceports',
+    'bases', 'forceCompositions', 'nuclear', 'irradiators', 'spaceports',
     'cables', 'pipelines', 'datacenters', 'military',
     'ais', 'tradeRoutes', 'flights', 'protests',
     'ucdpEvents', 'displacement', 'climate', 'weather',
@@ -156,6 +157,12 @@ export const LAYER_SYNONYMS: Record<string, Array<keyof MapLayers>> = {
   war: ['conflicts', 'ucdpEvents', 'military'],
   battle: ['conflicts', 'ucdpEvents'],
   army: ['military', 'bases'],
+  orbat: ['forceCompositions'],
+  'red force': ['forceCompositions'],
+  'blue force': ['forceCompositions'],
+  brigade: ['forceCompositions'],
+  division: ['forceCompositions'],
+  corps: ['forceCompositions'],
   navy: ['military', 'ais'],
   missile: ['iranAttacks', 'military'],
   nuke: ['nuclear'],

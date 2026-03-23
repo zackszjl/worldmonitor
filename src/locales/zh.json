@@ -246,7 +246,7 @@
     "macroSignals": "市场雷达",
     "etfFlows": "BTC ETF追踪",
     "stablecoins": "稳定币",
-    "deduction": "推断局势",
+    "deduction": "AI Forecast",
     "ucdpEvents": "UCDP冲突事件",
     "giving": "全球捐赠",
     "displacement": "UNHCR流离失所",
@@ -1051,6 +1051,7 @@
         "happiness": "世界幸福度",
         "speciesRecovery": "物种恢复",
         "renewableInstallations": "清洁能源"
+        ,"forceCompositions": "\u5175\u529b\u7f16\u6210"
       },
       "tooltip": {
         "earthquake": "地震",
@@ -1079,6 +1080,135 @@
         "undisclosed": "未披露",
         "stake": "股份"
       },
+      "forceCompositions": {
+        "filters": {
+          "all": "\u5168\u90e8",
+          "red": "\u7ea2\u65b9",
+          "blue": "\u84dd\u65b9",
+          "echelon": "\u7f16\u6210\u7ea7\u522b",
+          "allEchelons": "\u5168\u90e8\u7ea7\u522b"
+        },
+        "side": {
+          "red": "\u7ea2\u65b9",
+          "blue": "\u84dd\u65b9"
+        },
+        "echelons": {
+          "army_group": "\u96c6\u56e2\u519b\u7fa4",
+          "front": "\u65b9\u9762\u519b",
+          "theater": "\u6218\u533a",
+          "corps": "\u519b\u56e2",
+          "division": "\u5e08",
+          "brigade": "\u65c5",
+          "regiment": "\u56e2",
+          "battalion": "\u8425",
+          "company": "\u8fde",
+          "platoon": "\u6392"
+        },
+        "displayPositionType": {
+          "deployment": "\u90e8\u7f72\u4f4d\u7f6e",
+          "hq": "\u6307\u6325\u90e8"
+        },
+        "status": {
+          "deployed": "\u5df2\u90e8\u7f72",
+          "forward-positioned": "\u524d\u6cbf\u90e8\u7f72",
+          "holding": "\u56fa\u5b88",
+          "supporting": "\u652f\u63f4",
+          "engaged": "\u4ea4\u6218",
+          "rotational": "\u8f6e\u6362",
+          "dispersed": "\u5206\u6563"
+        },
+        "readiness": {
+          "high": "\u9ad8",
+          "medium": "\u4e2d",
+          "low": "\u4f4e"
+        },
+        "branches": {
+          "army": "\u9646\u519b",
+          "marine": "\u6d77\u519b\u9646\u6218\u961f",
+          "rocket_force": "\u706b\u7bad\u519b"
+        },
+        "unitTypes": {
+          "corps": "\u519b\u56e2",
+          "mechanized": "\u673a\u68b0\u5316",
+          "armored": "\u88c5\u7532",
+          "fires": "\u706b\u529b",
+          "combined_arms": "\u5408\u6210\u4f5c\u6218",
+          "motor_rifle": "\u6469\u6258\u5316\u6b65\u5175",
+          "air_defense": "\u9632\u7a7a",
+          "littoral": "\u6cbf\u5cb8\u4f5c\u6218",
+          "missile": "\u5bfc\u5f39"
+        },
+        "equipment": {
+          "m1a2_abrams": "M1A2 \u827e\u5e03\u62c9\u59c6\u65af\u4e3b\u6218\u5766\u514b",
+          "m2_bradley": "M2 \u5e03\u96f7\u5fb7\u5229\u6b65\u5175\u6218\u8f66",
+          "patriot_batteries": "\u7231\u56fd\u8005\u9632\u7a7a\u5bfc\u5f39\u8fde",
+          "leopard_2": "\u8c79 2 \u4e3b\u6218\u5766\u514b",
+          "pzh_2000": "PzH 2000 \u81ea\u884c\u6982\u5f39\u70ae",
+          "tracked_ifvs": "\u5c65\u5e26\u5f0f\u6b65\u5175\u6218\u8f66",
+          "mbts": "\u4e3b\u6218\u5766\u514b",
+          "recovery_vehicles": "\u88c5\u7532\u62a2\u4fee\u8f66",
+          "mlrs": "\u591a\u7ba1\u706b\u7bad\u70ae",
+          "counter_battery_radars": "\u5bf9\u70ae\u5175\u96f7\u8fbe",
+          "tube_artillery": "\u7ba1\u5f0f\u706b\u70ae",
+          "air_defense_battalions": "\u9632\u7a7a\u8425",
+          "bmp_ifvs": "BMP \u7cfb\u5217\u6b65\u5175\u6218\u8f66",
+          "self_propelled_artillery": "\u81ea\u884c\u706b\u70ae",
+          "motor_rifle_battalions": "\u6469\u6b65\u8425",
+          "field_sam_teams": "\u91ce\u6218\u5730\u7a7a\u5bfc\u5f39\u5206\u961f",
+          "buk_batteries": "Buk \u9632\u7a7a\u5bfc\u5f39\u8fde",
+          "short_range_air_defense": "\u8fd1\u7a0b\u9632\u7a7a\u7cfb\u7edf",
+          "coastal_missile_teams": "\u5cb8\u8230\u5bfc\u5f39\u5206\u961f",
+          "light_logistics_vessels": "\u8f7b\u578b\u540e\u52e4\u8239\u8247",
+          "mobile_missile_launchers": "\u673a\u52a8\u5bfc\u5f39\u53d1\u5c04\u8f66",
+          "tel_support_vehicles": "\u5bfc\u5f39\u8fd0\u8f93\u8d77\u7acb\u53d1\u5c04\u652f\u63f4\u8f66\u8f86"
+        },
+        "units": {
+          "blue-corps-west": {
+            "name": "\u7b2c\u4e00\u8fdc\u5f81\u519b\u56e2",
+            "notes": "\u627f\u62c5\u897f\u90e8\u6218\u533a\u65b9\u5411\u7684\u524d\u6cbf\u6307\u6325\u4efb\u52a1\u3002"
+          },
+          "blue-division-west": {
+            "name": "\u7b2c3\u673a\u68b0\u5316\u5e08",
+            "notes": "\u4e3a\u519b\u56e2\u7ea7\u524d\u6cbf\u6307\u6325\u90e8\u63d0\u4f9b\u4e3b\u8981\u673a\u52a8\u4f5c\u6218\u529b\u91cf\u3002"
+          },
+          "blue-brigade-west-1": {
+            "name": "\u7b2c12\u88c5\u7532\u65c5",
+            "notes": "\u90e8\u7f72\u4f4d\u7f6e\u672a\u516c\u5f00\uff1b\u5730\u56fe\u5df2\u56de\u9000\u663e\u793a\u53f8\u4ee4\u90e8\u4f4d\u7f6e\u3002"
+          },
+          "blue-brigade-west-2": {
+            "name": "\u7b2c27\u706b\u529b\u65c5",
+            "notes": "\u4e3a\u6218\u533a\u652f\u63f4\u914d\u5c5e\u7684\u8fdc\u7a0b\u706b\u529b\u65c5\u3002"
+          },
+          "red-corps-west": {
+            "name": "\u8fd1\u536b\u7b2c5\u519b\u56e2",
+            "notes": "\u519b\u56e2\u53f8\u4ee4\u90e8\u9762\u5411\u540c\u4e00\u897f\u90e8\u6218\u533a\u65b9\u5411\u5c55\u5f00\u90e8\u7f72\u3002"
+          },
+          "red-division-west": {
+            "name": "\u7b2c41\u5408\u6210\u5e08",
+            "notes": "\u5e08\u7ea7\u7f16\u6210\u96c6\u4e2d\u90e8\u7f72\u5728\u524d\u6cbf\u9644\u8fd1\u3002"
+          },
+          "red-brigade-west-1": {
+            "name": "\u7b2c18\u6469\u6258\u5316\u6b65\u5175\u65c5",
+            "notes": "\u897f\u90e8\u96c6\u7fa4\u4e2d\u7684\u524d\u51fa\u4e3b\u529b\u65c5\u3002"
+          },
+          "red-brigade-west-2": {
+            "name": "\u7b2c9\u9632\u7a7a\u65c5",
+            "notes": "\u4e3a\u7ea2\u65b9\u897f\u90e8\u96c6\u7fa4\u63d0\u4f9b\u9632\u7a7a\u63a9\u62a4\u3002"
+          },
+          "blue-brigade-pacific": {
+            "name": "\u7b2c2\u6cbf\u5cb8\u4f5c\u6218\u65c5",
+            "notes": "\u592a\u5e73\u6d0b\u65b9\u5411\u65c5\u7ea7\u90e8\u961f\u90e8\u7f72\u5728\u53cd\u7ecf\u7ebf\u4ee5\u4e1c\u3002"
+          },
+          "red-brigade-pacific": {
+            "name": "\u592a\u5e73\u6d0b\u5bfc\u5f39\u65c5",
+            "notes": "\u592a\u5e73\u6d0b\u65b9\u5411\u5bfc\u5f39\u65c5\u4f4d\u4e8e\u53cd\u7ecf\u7ebf\u4ee5\u897f\u3002"
+          }
+        },
+        "tooltip": {
+          "personnelCount": "{{count}} \u4eba",
+          "unitCount": "{{count}} \u4e2a\u5355\u4f4d"
+        }
+      },
       "layerHelp": {
         "title": "地图图层指南",
         "labels": {
@@ -1103,6 +1233,7 @@
           "overlays": "叠加层和标签"
         },
         "descriptions": {
+          "forceCompositions": "\u6309\u7f29\u653e\u7ea7\u522b\u5207\u6362\u96c6\u7fa4\u4e0e\u5355\u4f4d\u70b9\u4f4d\u7684\u5175\u529b\u7f16\u6210\u56fe\u5c42",
           "techStartupHubs": "主要创业生态系统（旧金山、纽约、伦敦等）",
           "techCloudRegions": "AWS、Azure、GCP数据中心区域",
           "techHQs": "大型科技公司总部",
@@ -1732,6 +1863,23 @@
     },
     "conflict": {
       "title": "冲突区"
+    },
+    "forceComposition": {
+      "echelon": "\u7f16\u6210\u7ea7\u522b",
+      "personnel": "\u4eba\u5458\u89c4\u6a21",
+      "displayPosition": "\u663e\u793a\u4f4d\u7f6e",
+      "status": "\u72b6\u6001",
+      "readiness": "\u6218\u5907\u6c34\u5e73",
+      "branchType": "\u519b\u79cd / \u7c7b\u578b",
+      "aliases": "\u522b\u540d",
+      "parent": "\u4e0a\u7ea7\u5355\u4f4d",
+      "children": "\u4e0b\u8f96\u5355\u4f4d",
+      "hq": "\u6307\u6325\u90e8",
+      "deployment": "\u90e8\u7f72\u4f4d\u7f6e",
+      "equipment": "\u88c5\u5907",
+      "sources": "\u6765\u6e90",
+      "none": "\u65e0",
+      "unavailable": "\u6682\u65e0"
     },
     "earthquake": {
       "levels": {

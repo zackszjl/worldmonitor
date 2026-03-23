@@ -32,6 +32,8 @@ import type {
   AisDisruptionEvent,
   CableAdvisory,
   CyberThreat,
+  ForceCompositionCluster,
+  ForceCompositionEntry,
   InternetOutage,
   MapLayers,
   MilitaryFlight,
@@ -116,6 +118,10 @@ type MapHarness = {
   getProtestClusterCount: () => number;
   getOverlaySnapshot: () => OverlaySnapshot;
   getCyberTooltipHtml: (indicator: string) => string;
+  getForceCompositionTooltipHtml: (kind: 'entry' | 'cluster') => string;
+  getForceCompositionPopupText: () => string;
+  triggerForceCompositionClusterClick: () => void;
+  getCurrentZoom: () => number;
   destroy: () => void;
 };
 
@@ -142,6 +148,7 @@ const allLayersEnabled: MapLayers = {
 
   conflicts: true,
   bases: true,
+  forceCompositions: SITE_VARIANT !== 'tech' && SITE_VARIANT !== 'finance',
   cables: true,
   pipelines: true,
   hotspots: true,
@@ -196,6 +203,7 @@ const allLayersDisabled: MapLayers = {
 
   conflicts: false,
   bases: false,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: false,
@@ -272,6 +280,7 @@ const internals = map as unknown as {
   buildLayers?: () => Array<{ id: string; props?: { data?: unknown } }>;
   maplibreMap?: MapLibreMap;
   getTooltip?: (info: { object?: unknown; layer?: { id?: string } }) => { html?: string } | null;
+  handleClick?: (info: { object?: unknown; layer?: { id?: string }; x?: number; y?: number }) => void;
   newsLocationFirstSeen?: Map<string, number>;
   newsPulseIntervalId?: ReturnType<typeof setInterval> | null;
   startupTime?: number;
@@ -450,6 +459,80 @@ const [financialCenterLon, financialCenterLat] = firstLatLon(FINANCIAL_CENTERS, 
 const [centralBankLon, centralBankLat] = firstLatLon(CENTRAL_BANKS, [-77.0, 38.9]);
 const [commodityHubLon, commodityHubLat] = firstLatLon(COMMODITY_HUBS, [-87.6, 41.8]);
 
+const E2E_FORCE_COMPOSITION_ENTRIES: ForceCompositionEntry[] = [
+  {
+    id: 'e2e-force-blue-division',
+    name: 'Harness Blue Division',
+    side: 'blue',
+    branch: 'army',
+    unitType: 'mechanized',
+    echelon: 'division',
+    personnelEstimate: 18000,
+    parentId: 'e2e-force-blue-corps',
+    parentName: 'Harness Blue Corps',
+    childCount: 2,
+    displayLatitude: 34.72,
+    displayLongitude: 44.78,
+    displayPositionType: 'deployment',
+    hqLatitude: 34.9,
+    hqLongitude: 44.6,
+    deploymentLatitude: 34.72,
+    deploymentLongitude: 44.78,
+    countryIso2: 'IQ',
+    notes: 'Harness blue division seed.',
+    aliases: ['HB Div'],
+    status: 'forward-positioned',
+    readiness: 'high',
+    equipmentSummary: ['tracked IFVs', 'self-propelled artillery'],
+    sourceRefs: ['wm://e2e/blue-division'],
+  },
+  {
+    id: 'e2e-force-red-brigade',
+    name: 'Harness Red Brigade',
+    side: 'red',
+    branch: 'army',
+    unitType: 'motor_rifle',
+    echelon: 'brigade',
+    personnelEstimate: 4300,
+    parentId: 'e2e-force-red-division',
+    parentName: 'Harness Red Division',
+    childCount: 0,
+    displayLatitude: 34.69,
+    displayLongitude: 45.14,
+    displayPositionType: 'hq',
+    hqLatitude: 34.69,
+    hqLongitude: 45.14,
+    deploymentLatitude: null,
+    deploymentLongitude: null,
+    countryIso2: 'IQ',
+    notes: 'Harness red brigade seed.',
+    aliases: ['HR Bde'],
+    status: 'holding',
+    readiness: 'medium',
+    equipmentSummary: ['motor rifle battalions'],
+    sourceRefs: ['wm://e2e/red-brigade'],
+  },
+];
+
+const E2E_FORCE_COMPOSITION_CLUSTERS: ForceCompositionCluster[] = [
+  {
+    latitude: 34.75,
+    longitude: 44.88,
+    count: 3,
+    side: 'blue',
+    dominantEchelon: 'brigade',
+    expansionZoom: 6,
+  },
+  {
+    latitude: 34.78,
+    longitude: 45.08,
+    count: 3,
+    side: 'red',
+    dominantEchelon: 'brigade',
+    expansionZoom: 6,
+  },
+];
+
 const VISUAL_SCENARIOS: VisualScenario[] = [
   {
     id: 'conflicts-z4',
@@ -606,6 +689,22 @@ const VISUAL_SCENARIOS: VisualScenario[] = [
       'military-flights-layer',
       'military-flight-clusters-layer',
     ],
+    expectedSelectors: [],
+  },
+  {
+    id: 'force-compositions-clusters-z4',
+    variant: 'full',
+    enabledLayers: ['forceCompositions'],
+    camera: toCamera(44.96, 34.79, 4.0),
+    expectedDeckLayers: ['force-composition-clusters-layer'],
+    expectedSelectors: [],
+  },
+  {
+    id: 'force-compositions-points-z7',
+    variant: 'full',
+    enabledLayers: ['forceCompositions'],
+    camera: toCamera(44.96, 34.79, 7.0),
+    expectedDeckLayers: ['force-compositions-layer'],
     expectedSelectors: [],
   },
   {
@@ -1047,6 +1146,13 @@ const seedAllDynamicData = (): void => {
   map.setFlightDelays(flightDelays);
   map.setMilitaryFlights(militaryFlights, militaryFlightClusters);
   map.setMilitaryVessels(militaryVessels, militaryVesselClusters);
+  if (currentHarnessVariant === 'full') {
+    map.setForceCompositions(E2E_FORCE_COMPOSITION_ENTRIES, E2E_FORCE_COMPOSITION_CLUSTERS, {
+      availableEchelons: ['corps', 'division', 'brigade'],
+      datasetVersion: 'e2e-force-compositions.v1',
+      updatedAt: '2026-03-20T00:00:00Z',
+    });
+  }
   map.setNaturalEvents(naturalEvents);
   map.setFires([
     {
@@ -1187,6 +1293,13 @@ const prepareVisualScenario = (scenarioId: string): boolean => {
   if (!scenario.includeNewsLocation) {
     makeNewsLocationsNonRecent();
   }
+  if (currentHarnessVariant === 'full' && scenario.enabledLayers.includes('forceCompositions')) {
+    map.setForceCompositions(E2E_FORCE_COMPOSITION_ENTRIES, E2E_FORCE_COMPOSITION_CLUSTERS, {
+      availableEchelons: ['corps', 'division', 'brigade'],
+      datasetVersion: 'e2e-force-compositions.v1',
+      updatedAt: '2026-03-20T00:00:00Z',
+    });
+  }
   setCamera(scenario.camera);
   map.setRenderPaused(false);
   map.render();
@@ -1227,6 +1340,37 @@ const getCyberTooltipHtml = (indicator: string): string => {
     layer: { id: 'cyber-threats-layer' },
   });
   return typeof tooltip?.html === 'string' ? tooltip.html : '';
+};
+
+const getForceCompositionTooltipHtml = (kind: 'entry' | 'cluster'): string => {
+  const tooltip = internals.getTooltip?.({
+    object: kind === 'entry'
+      ? E2E_FORCE_COMPOSITION_ENTRIES[0]
+      : E2E_FORCE_COMPOSITION_CLUSTERS[0],
+    layer: { id: kind === 'entry' ? 'force-compositions-layer' : 'force-composition-clusters-layer' },
+  });
+  return typeof tooltip?.html === 'string' ? tooltip.html : '';
+};
+
+const getForceCompositionPopupText = (): string => {
+  internals.handleClick?.({
+    object: E2E_FORCE_COMPOSITION_ENTRIES[0],
+    layer: { id: 'force-compositions-layer' },
+    x: 320,
+    y: 240,
+  });
+  const text = document.querySelector('.map-popup')?.textContent?.replace(/\s+/g, ' ').trim() ?? '';
+  (document.querySelector('.map-popup .popup-close') as HTMLButtonElement | null)?.click();
+  return text;
+};
+
+const triggerForceCompositionClusterClick = (): void => {
+  internals.handleClick?.({
+    object: E2E_FORCE_COMPOSITION_CLUSTERS[0],
+    layer: { id: 'force-composition-clusters-layer' },
+    x: 320,
+    y: 240,
+  });
 };
 
 seedAllDynamicData();
@@ -1302,6 +1446,12 @@ window.__mapHarness = {
   getProtestClusterCount,
   getOverlaySnapshot,
   getCyberTooltipHtml,
+  getForceCompositionTooltipHtml,
+  getForceCompositionPopupText,
+  triggerForceCompositionClusterClick,
+  getCurrentZoom: (): number => {
+    return internals.maplibreMap?.getZoom() ?? 0;
+  },
   destroy: (): void => {
     map.destroy();
   },

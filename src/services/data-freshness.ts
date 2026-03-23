@@ -10,6 +10,7 @@ export type DataSourceId =
   | 'acled'      // Protests/conflicts
   | 'opensky'    // Military flights
   | 'wingbits'   // Aircraft enrichment
+  | 'force_compositions' // Force compositions / ORBAT
   | 'ais'        // Vessel tracking
   | 'usgs'       // Earthquakes
   | 'gdelt'      // News velocity
@@ -77,6 +78,7 @@ const SOURCE_METADATA: Record<DataSourceId, { name: string; requiredForRisk: boo
   acled: { name: 'Protests & Conflicts', requiredForRisk: false, panelId: 'protests' },
   opensky: { name: 'Military Flights', requiredForRisk: false, panelId: 'military' },
   wingbits: { name: 'Aircraft Enrichment', requiredForRisk: false, panelId: 'military' },
+  force_compositions: { name: '兵力编成', requiredForRisk: false, panelId: 'map' },
   ais: { name: 'Vessel Tracking', requiredForRisk: false, panelId: 'shipping' },
   usgs: { name: 'Earthquakes', requiredForRisk: false, panelId: 'natural' },
   gdelt: { name: 'News Intelligence', requiredForRisk: true, panelId: 'intel' },
@@ -334,6 +336,7 @@ export function getStatusIcon(status: FreshnessStatus): string {
 
 // Intelligence gap messages - explains what analysts CAN'T see (Quick Win #1)
 const INTELLIGENCE_GAP_MESSAGES: Record<DataSourceId, string> = {
+  force_compositions: 'Force composition overlay unavailable—red/blue ORBAT visibility reduced',
   acled: 'Protest/conflict events may be missed—ACLED data unavailable',
   opensky: 'Military aircraft positions unknown—flight tracking offline',
   wingbits: 'Aircraft identification limited—enrichment service unavailable',

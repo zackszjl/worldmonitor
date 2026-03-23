@@ -35,8 +35,19 @@ import type {
   CyberThreat,
   CableHealthRecord,
   MilitaryBaseEnriched,
+  ForceCompositionEntry,
+  ForceCompositionCluster,
+  ForceCompositionSide,
+  ForceCompositionMeta,
 } from '@/types';
 import { fetchMilitaryBases, type MilitaryBaseCluster as ServerBaseCluster } from '@/services/military-bases';
+import {
+  clearForceCompositionCache,
+  fetchForceCompositions,
+  getAvailableForceCompositionEchelons,
+  getForceCompositionMeta,
+  type ForceCompositionFetchFilters,
+} from '@/services/force-compositions';
 import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
 import { fetchAircraftPositions } from '@/services/aviation';
 import { type IranEvent, getIranEventColor, getIranEventRadius } from '@/services/conflict';
@@ -148,6 +159,13 @@ interface TechEventMarker {
   daysUntil: number;
 }
 
+type ForceCompositionSideFilter = 'all' | ForceCompositionSide;
+
+interface ForceCompositionFilterState {
+  side: ForceCompositionSideFilter;
+  echelon: 'all' | string;
+}
+
 // View presets with longitude, latitude, zoom
 const VIEW_PRESETS: Record<DeckMapView, { longitude: number; latitude: number; zoom: number }> = {
   global: { longitude: 0, latitude: 20, zoom: 1.5 },
@@ -171,6 +189,7 @@ const isHappyVariant = SITE_VARIANT === 'happy';
 // Zoom-dependent layer visibility and labels
 const LAYER_ZOOM_THRESHOLDS: Partial<Record<keyof MapLayers, { minZoom: number; showLabels?: number }>> = {
   bases: { minZoom: 3, showLabels: 5 },
+  forceCompositions: { minZoom: 3, showLabels: 6 },
   nuclear: { minZoom: 3 },
   conflicts: { minZoom: 1, showLabels: 3 },
   economic: { minZoom: 3 },
@@ -182,6 +201,19 @@ const LAYER_ZOOM_THRESHOLDS: Partial<Record<keyof MapLayers, { minZoom: number; 
 };
 // Export for external use
 export { LAYER_ZOOM_THRESHOLDS };
+
+const FORCE_COMPOSITION_ECHELON_ORDER = [
+  'army_group',
+  'front',
+  'theater',
+  'corps',
+  'division',
+  'brigade',
+  'regiment',
+  'battalion',
+  'company',
+  'platoon',
+];
 
 // Theme-aware overlay color function — refreshed each buildLayers() call
 function getOverlayColors() {
@@ -328,6 +360,12 @@ export class DeckGLMap {
   private displacementFlows: DisplacementFlow[] = [];
   private gpsJammingHexes: GpsJamHex[] = [];
   private climateAnomalies: ClimateAnomaly[] = [];
+  private forceCompositionEntries: ForceCompositionEntry[] = [];
+  private forceCompositionClusters: ForceCompositionCluster[] = [];
+  private forceCompositionManualOverride = false;
+  private forceCompositionFilterState: ForceCompositionFilterState = { side: 'all', echelon: 'all' };
+  private forceCompositionAvailableEchelons: string[] = getAvailableForceCompositionEchelons();
+  private forceCompositionMeta: Partial<ForceCompositionMeta> | null = getForceCompositionMeta();
   private tradeRouteSegments: TradeRouteSegment[] = resolveTradeRouteSegments();
   private positiveEvents: PositiveGeoEvent[] = [];
   private kindnessPoints: KindnessPoint[] = [];
@@ -414,6 +452,7 @@ export class DeckGLMap {
   private lastPipelineHighlightSignature = '';
   private debouncedRebuildLayers: (() => void) & { cancel(): void };
   private debouncedFetchBases: (() => void) & { cancel(): void };
+  private debouncedFetchForceCompositions: (() => void) & { cancel(): void };
   private debouncedFetchAircraft: (() => void) & { cancel(): void };
   private rafUpdateLayers: (() => void) & { cancel(): void };
   private handleThemeChange: () => void;
@@ -422,6 +461,7 @@ export class DeckGLMap {
   private lastAircraftFetchCenter: [number, number] | null = null;
   private lastAircraftFetchZoom = -1;
   private aircraftFetchSeq = 0;
+  private forceCompositionFetchSeq = 0;
 
   constructor(container: HTMLElement, initialState: DeckMapState) {
     this.container = container;
@@ -439,6 +479,7 @@ export class DeckGLMap {
       this.maplibreMap.triggerRepaint();
     }, 150);
     this.debouncedFetchBases = debounce(() => this.fetchServerBases(), 300);
+    this.debouncedFetchForceCompositions = debounce(() => this.fetchServerForceCompositions(), 300);
     this.debouncedFetchAircraft = debounce(() => this.fetchViewportAircraft(), 500);
     this.rafUpdateLayers = rafSchedule(() => {
       if (this.renderPaused || this.webglLost || !this.maplibreMap) return;
@@ -476,6 +517,7 @@ export class DeckGLMap {
       this.initDeck();
       this.loadCountryBoundaries();
       this.fetchServerBases();
+      this.fetchServerForceCompositions();
       this.render();
     });
 
@@ -606,6 +648,7 @@ export class DeckGLMap {
         this.initDeck();
         this.loadCountryBoundaries();
         this.fetchServerBases();
+        this.fetchServerForceCompositions();
         this.render();
       });
     };
@@ -702,6 +745,7 @@ export class DeckGLMap {
       this.lastSCZoom = -1;
       this.rafUpdateLayers();
       this.debouncedFetchBases();
+      this.debouncedFetchForceCompositions();
       this.debouncedFetchAircraft();
       this.state.zoom = this.maplibreMap?.getZoom() ?? this.state.zoom;
       this.onStateChange?.(this.getState());
@@ -1237,6 +1281,10 @@ export class DeckGLMap {
     }
     layers.push(this.createEmptyGhost('bases-layer'));
 
+    if (mapLayers.forceCompositions && this.isLayerVisible('forceCompositions')) {
+      layers.push(...this.createForceCompositionLayers());
+    }
+
     // Nuclear facilities layer — hidden at low zoom
     if (mapLayers.nuclear && this.isLayerVisible('nuclear')) {
       layers.push(this.createNuclearLayer());
@@ -1719,6 +1767,95 @@ export class DeckGLMap {
     });
 
     return [scatterLayer, textLayer];
+  }
+
+  private getForceCompositionColor(side: ForceCompositionSide, alpha = 210): [number, number, number, number] {
+    return side === 'red'
+      ? [220, 68, 68, alpha]
+      : [68, 136, 255, alpha];
+  }
+
+  private getForceCompositionOutline(side: ForceCompositionSide): [number, number, number, number] {
+    return side === 'red'
+      ? [255, 200, 200, 220]
+      : [210, 230, 255, 220];
+  }
+
+  private getForceCompositionRadius(echelon: string): number {
+    switch ((echelon || '').toLowerCase()) {
+      case 'army_group':
+      case 'front':
+      case 'theater':
+      case 'corps':
+        return 18;
+      case 'division':
+        return 14;
+      case 'brigade':
+        return 10;
+      case 'regiment':
+        return 8;
+      case 'battalion':
+        return 7;
+      default:
+        return 9;
+    }
+  }
+
+  private createForceCompositionLayers(): Layer[] {
+    const zoom = this.maplibreMap?.getZoom() || 3;
+    const shouldShowClusters = zoom < 6.5 && this.forceCompositionClusters.length > 0;
+    const layers: Layer[] = [];
+
+    if (!shouldShowClusters && this.forceCompositionEntries.length > 0) {
+      layers.push(new ScatterplotLayer<ForceCompositionEntry>({
+        id: 'force-compositions-layer',
+        data: this.forceCompositionEntries,
+        getPosition: (entry) => [entry.displayLongitude, entry.displayLatitude],
+        getRadius: (entry) => this.getForceCompositionRadius(entry.echelon),
+        radiusUnits: 'pixels',
+        radiusMinPixels: 6,
+        radiusMaxPixels: 24,
+        getFillColor: (entry) => this.getForceCompositionColor(entry.side),
+        getLineColor: (entry) => this.getForceCompositionOutline(entry.side),
+        lineWidthMinPixels: 1,
+        stroked: true,
+        pickable: true,
+      }));
+      return layers;
+    }
+
+    if (this.forceCompositionClusters.length === 0) {
+      return layers;
+    }
+
+    layers.push(new ScatterplotLayer<ForceCompositionCluster>({
+      id: 'force-composition-clusters-layer',
+      data: this.forceCompositionClusters,
+      getPosition: (cluster) => [cluster.longitude, cluster.latitude],
+      getRadius: (cluster) => Math.min(12 + cluster.count * 2, 34),
+      radiusUnits: 'pixels',
+      radiusMinPixels: 12,
+      radiusMaxPixels: 36,
+      getFillColor: (cluster) => this.getForceCompositionColor(cluster.side, 220),
+      getLineColor: (cluster) => this.getForceCompositionOutline(cluster.side),
+      lineWidthMinPixels: 1,
+      stroked: true,
+      pickable: true,
+    }));
+    layers.push(new TextLayer<ForceCompositionCluster>({
+      id: 'force-composition-clusters-text-layer',
+      data: this.forceCompositionClusters,
+      getPosition: (cluster) => [cluster.longitude, cluster.latitude],
+      getText: (cluster) => String(cluster.count),
+      getSize: 12,
+      getColor: [255, 255, 255, 230],
+      fontWeight: 'bold',
+      getTextAnchor: 'middle',
+      getAlignmentBaseline: 'center',
+      pickable: false,
+    }));
+
+    return layers;
   }
 
   private createNuclearLayer(): IconLayer {
@@ -3333,6 +3470,18 @@ export class DeckGLMap {
     const obj = info.object as any;
     const text = (value: unknown): string => escapeHtml(String(value ?? ''));
 
+    if (layerId === 'force-compositions-layer') {
+      return {
+        html: `<div class="deckgl-tooltip"><strong>${text(this.getForceCompositionUnitName(String(obj.id || ''), String(obj.name || '')))}</strong><br/>${text(this.getForceCompositionSideLabel(String(obj.side || '')))} &middot; ${text(this.getForceCompositionEchelonLabel(String(obj.echelon || '')))}<br/>${t('components.deckgl.forceCompositions.tooltip.personnelCount', { count: Number(obj.personnelEstimate || 0).toLocaleString() })}</div>`,
+      };
+    }
+
+    if (layerId === 'force-composition-clusters-layer') {
+      return {
+        html: `<div class="deckgl-tooltip"><strong>${t('components.deckgl.forceCompositions.tooltip.unitCount', { count: String(obj.count || 0) })}</strong><br/>${text(this.getForceCompositionSideLabel(String(obj.side || '')))} &middot; ${text(this.getForceCompositionEchelonLabel(String(obj.dominantEchelon || '')))}</div>`,
+      };
+    }
+
     switch (layerId) {
       case 'hotspots-layer':
         return { html: `<div class="deckgl-tooltip"><strong>${text(obj.name)}</strong><br/>${text(obj.subtext)}</div>` };
@@ -3723,11 +3872,24 @@ export class DeckGLMap {
       return;
     }
 
+    if (layerId === 'force-composition-clusters-layer') {
+      const cluster = info.object as ForceCompositionCluster;
+      if (this.maplibreMap) {
+        this.maplibreMap.flyTo({
+          center: [cluster.longitude, cluster.latitude],
+          zoom: cluster.expansionZoom,
+          duration: 450,
+        });
+      }
+      return;
+    }
+
     // Map layer IDs to popup types
     const layerToPopupType: Record<string, PopupType> = {
       'conflict-zones-layer': 'conflict',
 
       'bases-layer': 'base',
+      'force-compositions-layer': 'forceComposition',
       'nuclear-layer': 'nuclear',
       'irradiators-layer': 'irradiator',
       'datacenters-layer': 'datacenter',
@@ -3895,6 +4057,127 @@ export class DeckGLMap {
     });
   }
 
+  private createForceCompositionFilterControls(container: HTMLElement): void {
+    const forceToggle = container.querySelector('.layer-toggle[data-layer="forceCompositions"]');
+    if (!forceToggle) return;
+
+    let controls = container.querySelector('.force-composition-filter-controls') as HTMLElement | null;
+    if (!controls) {
+      controls = document.createElement('div');
+      controls.className = 'layer-toggle-extra force-composition-filter-controls';
+      controls.setAttribute('data-layer-extra', 'forceCompositions');
+      controls.innerHTML = `
+        <div class="force-composition-side-buttons">
+          <button type="button" data-force-side="all">${escapeHtml(t('components.deckgl.forceCompositions.filters.all'))}</button>
+          <button type="button" data-force-side="red">${escapeHtml(t('components.deckgl.forceCompositions.filters.red'))}</button>
+          <button type="button" data-force-side="blue">${escapeHtml(t('components.deckgl.forceCompositions.filters.blue'))}</button>
+        </div>
+        <label class="force-composition-echelon-filter">
+          <span>${escapeHtml(t('components.deckgl.forceCompositions.filters.echelon'))}</span>
+          <select class="force-composition-echelon-select"></select>
+        </label>
+      `;
+      forceToggle.insertAdjacentElement('afterend', controls);
+
+      controls.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement | null;
+        const sideButton = target?.closest<HTMLButtonElement>('button[data-force-side]');
+        if (!sideButton) return;
+        event.preventDefault();
+        const nextSide = (sideButton.dataset.forceSide || 'all') as ForceCompositionSideFilter;
+        if (this.forceCompositionFilterState.side === nextSide) return;
+        this.forceCompositionFilterState.side = nextSide;
+        this.refreshForceCompositionFilterControls();
+        if (this.state.layers.forceCompositions) {
+          this.fetchServerForceCompositions();
+        }
+      });
+
+      const echelonSelect = controls.querySelector('.force-composition-echelon-select') as HTMLSelectElement | null;
+      echelonSelect?.addEventListener('change', () => {
+        const nextValue = echelonSelect.value || 'all';
+        if (this.forceCompositionFilterState.echelon === nextValue) return;
+        this.forceCompositionFilterState.echelon = nextValue;
+        this.refreshForceCompositionFilterControls();
+        if (this.state.layers.forceCompositions) {
+          this.fetchServerForceCompositions();
+        }
+      });
+    }
+
+    this.refreshForceCompositionFilterControls();
+  }
+
+  private refreshForceCompositionFilterControls(): void {
+    const controls = this.container.querySelector('.force-composition-filter-controls') as HTMLElement | null;
+    const forceToggle = this.container.querySelector('.layer-toggle[data-layer="forceCompositions"]') as HTMLElement | null;
+    if (!controls || !forceToggle) return;
+
+    const availableEchelons = this.sortForceCompositionEchelons(this.forceCompositionAvailableEchelons);
+    if (
+      this.forceCompositionFilterState.echelon !== 'all'
+      && !availableEchelons.includes(this.forceCompositionFilterState.echelon)
+    ) {
+      this.forceCompositionFilterState.echelon = 'all';
+    }
+
+    controls.style.display = forceToggle.style.display === 'none' ? 'none' : '';
+    controls.querySelectorAll<HTMLButtonElement>('button[data-force-side]').forEach((button) => {
+      button.classList.toggle('active', button.dataset.forceSide === this.forceCompositionFilterState.side);
+    });
+
+    const echelonSelect = controls.querySelector('.force-composition-echelon-select') as HTMLSelectElement | null;
+    if (!echelonSelect) return;
+
+    const nextOptions = [
+      `<option value="all">${escapeHtml(t('components.deckgl.forceCompositions.filters.allEchelons'))}</option>`,
+      ...availableEchelons.map((echelon) => `<option value="${escapeHtml(echelon)}">${escapeHtml(this.getForceCompositionEchelonLabel(echelon))}</option>`),
+    ].join('');
+    if (echelonSelect.innerHTML !== nextOptions) {
+      echelonSelect.innerHTML = nextOptions;
+    }
+    echelonSelect.value = this.forceCompositionFilterState.echelon;
+  }
+
+  private getForceCompositionSideLabel(side: string): string {
+    const normalized = String(side || '').trim().toLowerCase();
+    const key = `components.deckgl.forceCompositions.side.${normalized}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+    return normalized ? normalized.toUpperCase() : '';
+  }
+
+  private getForceCompositionEchelonLabel(echelon: string): string {
+    const normalized = String(echelon || '').trim().toLowerCase();
+    const key = `components.deckgl.forceCompositions.echelons.${normalized}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+    return echelon;
+  }
+
+  private getForceCompositionUnitName(id: string, fallback: string): string {
+    const normalizedId = String(id || '').trim();
+    if (!normalizedId) return fallback;
+    const key = `components.deckgl.forceCompositions.units.${normalizedId}.name`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+    return fallback;
+  }
+
+  private handleLayerStateEffects(layer: keyof MapLayers, enabled: boolean): void {
+    if (layer === 'flights') {
+      this.manageAircraftTimer(enabled);
+    }
+    if (layer === 'forceCompositions') {
+      if (enabled) {
+        this.fetchServerForceCompositions();
+      } else {
+        this.clearForceCompositionState();
+      }
+      this.refreshForceCompositionFilterControls();
+    }
+  }
+
   private createLayerToggles(): void {
     const toggles = document.createElement('div');
     toggles.className = 'layer-toggles deckgl-layer-toggles';
@@ -3942,7 +4225,7 @@ export class DeckGLMap {
         const layer = (input as HTMLInputElement).closest('.layer-toggle')?.getAttribute('data-layer') as keyof MapLayers;
         if (layer) {
           this.state.layers[layer] = (input as HTMLInputElement).checked;
-          if (layer === 'flights') this.manageAircraftTimer((input as HTMLInputElement).checked);
+          this.handleLayerStateEffects(layer, (input as HTMLInputElement).checked);
           this.render();
           this.onLayerChange?.(layer, (input as HTMLInputElement).checked, 'user');
           if (layer === 'ciiChoropleth') {
@@ -3973,7 +4256,12 @@ export class DeckGLMap {
       toggles.addEventListener('touchmove', (e) => e.stopPropagation(), { passive: false });
     }
     bindLayerSearch(toggles);
+    this.createForceCompositionFilterControls(toggles);
     const searchEl = toggles.querySelector('.layer-search') as HTMLElement | null;
+    const searchInput = toggles.querySelector('.layer-search') as HTMLInputElement | null;
+    searchInput?.addEventListener('input', () => {
+      requestAnimationFrame(() => this.refreshForceCompositionFilterControls());
+    });
 
     collapseBtn?.addEventListener('click', () => {
       toggleList?.classList.toggle('collapsed');
@@ -4277,6 +4565,7 @@ export class DeckGLMap {
       const zoomHidden = !!enabled && !this.isLayerVisible(key as keyof MapLayers);
       toggle.classList.toggle('zoom-hidden', zoomHidden);
     }
+    this.refreshForceCompositionFilterControls();
   }
 
   public setView(view: DeckMapView): void {
@@ -4353,14 +4642,19 @@ export class DeckGLMap {
   }
 
   public setLayers(layers: MapLayers): void {
+    const prevLayers = this.state.layers;
     this.state.layers = { ...layers };
-    this.manageAircraftTimer(this.state.layers.flights);
+    this.handleLayerStateEffects('flights', this.state.layers.flights);
+    if (prevLayers.forceCompositions !== this.state.layers.forceCompositions) {
+      this.handleLayerStateEffects('forceCompositions', this.state.layers.forceCompositions);
+    }
     this.render(); // Debounced
 
     Object.entries(this.state.layers).forEach(([key, value]) => {
       const toggle = this.container.querySelector(`.layer-toggle[data-layer="${key}"] input`) as HTMLInputElement;
       if (toggle) toggle.checked = value;
     });
+    this.refreshForceCompositionFilterControls();
   }
 
   public getState(): DeckMapState {
@@ -4652,6 +4946,100 @@ export class DeckGLMap {
     this.militaryVessels = vessels;
     this.militaryVesselClusters = clusters;
     this.render();
+  }
+
+  public setForceCompositions(
+    entries: ForceCompositionEntry[],
+    clusters: ForceCompositionCluster[] = [],
+    meta?: { availableEchelons?: string[]; datasetVersion?: string; updatedAt?: string },
+  ): void {
+    this.forceCompositionManualOverride = true;
+    this.forceCompositionEntries = entries;
+    this.forceCompositionClusters = clusters;
+    this.forceCompositionAvailableEchelons = this.sortForceCompositionEchelons(
+      meta?.availableEchelons ?? entries.map((entry) => entry.echelon),
+    );
+    this.forceCompositionMeta = {
+      ...(this.forceCompositionMeta ?? {}),
+      ...(meta ?? {}),
+    };
+    this.setLayerLoading('forceCompositions', false);
+    this.setLayerReady('forceCompositions', entries.length + clusters.length > 0);
+    this.refreshForceCompositionFilterControls();
+    this.render();
+  }
+
+  private sortForceCompositionEchelons(values: string[]): string[] {
+    return [...new Set(values.filter(Boolean))]
+      .sort((left, right) => {
+        const leftRank = FORCE_COMPOSITION_ECHELON_ORDER.indexOf(left);
+        const rightRank = FORCE_COMPOSITION_ECHELON_ORDER.indexOf(right);
+        const normalizedLeftRank = leftRank === -1 ? Number.MAX_SAFE_INTEGER : leftRank;
+        const normalizedRightRank = rightRank === -1 ? Number.MAX_SAFE_INTEGER : rightRank;
+        if (normalizedLeftRank !== normalizedRightRank) return normalizedLeftRank - normalizedRightRank;
+        return left.localeCompare(right);
+      });
+  }
+
+  private getForceCompositionFetchFilters(): ForceCompositionFetchFilters {
+    return {
+      side: this.forceCompositionFilterState.side,
+      echelon: this.forceCompositionFilterState.echelon,
+    };
+  }
+
+  private clearForceCompositionState(resetManualOverride = false): void {
+    this.forceCompositionEntries = [];
+    this.forceCompositionClusters = [];
+    if (resetManualOverride) {
+      this.forceCompositionManualOverride = false;
+    }
+    clearForceCompositionCache();
+    this.setLayerLoading('forceCompositions', false);
+    this.setLayerReady('forceCompositions', false);
+    this.render();
+  }
+
+  private fetchServerForceCompositions(): void {
+    if (!this.maplibreMap) return;
+    if (!this.state.layers.forceCompositions) return;
+    if (this.forceCompositionManualOverride) return;
+    const zoom = this.maplibreMap.getZoom();
+    if (zoom < (LAYER_ZOOM_THRESHOLDS.forceCompositions?.minZoom ?? 0)) return;
+
+    const bounds = this.maplibreMap.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    const seq = ++this.forceCompositionFetchSeq;
+    this.setLayerLoading('forceCompositions', true);
+
+    fetchForceCompositions(
+      sw.lat,
+      sw.lng,
+      ne.lat,
+      ne.lng,
+      zoom,
+      this.getForceCompositionFetchFilters(),
+    ).then((result) => {
+      if (!result || seq !== this.forceCompositionFetchSeq) return;
+      if (!this.state.layers.forceCompositions || this.forceCompositionManualOverride) return;
+      this.forceCompositionEntries = result.entries;
+      this.forceCompositionClusters = result.clusters;
+      this.forceCompositionMeta = {
+        ...(this.forceCompositionMeta ?? {}),
+        ...(getForceCompositionMeta() ?? {}),
+      };
+      this.forceCompositionAvailableEchelons = this.sortForceCompositionEchelons(result.availableEchelons);
+      this.refreshForceCompositionFilterControls();
+      this.setLayerLoading('forceCompositions', false);
+      this.setLayerReady('forceCompositions', result.totalInView > 0);
+      this.render();
+    }).catch((err) => {
+      if (seq !== this.forceCompositionFetchSeq) return;
+      console.error('[force-compositions] fetch error', err);
+      this.setLayerLoading('forceCompositions', false);
+      this.setLayerReady('forceCompositions', false);
+    });
   }
 
   private fetchServerBases(): void {
@@ -5033,6 +5421,7 @@ export class DeckGLMap {
       this.state.layers[layer] = true;
       const toggle = this.container.querySelector(`.layer-toggle[data-layer="${layer}"] input`) as HTMLInputElement;
       if (toggle) toggle.checked = true;
+      this.handleLayerStateEffects(layer, true);
       this.render();
       this.onLayerChange?.(layer, true, 'programmatic');
       this.enforceLayerLimit();
@@ -5044,6 +5433,7 @@ export class DeckGLMap {
     this.state.layers[layer] = !this.state.layers[layer];
     const toggle = this.container.querySelector(`.layer-toggle[data-layer="${layer}"] input`) as HTMLInputElement;
     if (toggle) toggle.checked = this.state.layers[layer];
+    this.handleLayerStateEffects(layer, this.state.layers[layer]);
     this.render();
     this.onLayerChange?.(layer, this.state.layers[layer], 'programmatic');
     this.enforceLayerLimit();

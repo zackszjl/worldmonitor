@@ -58,7 +58,7 @@ function safeInt(envVal, fallback, min) {
 }
 const MAX_VESSELS = safeInt(process.env.AIS_MAX_VESSELS, 20000, 1000);
 const MAX_VESSEL_HISTORY = safeInt(process.env.AIS_MAX_VESSEL_HISTORY, 20000, 1000);
-const MAX_DENSITY_CELLS = 5000;
+const MAX_DENSITY_CELLS = safeInt(process.env.AIS_MAX_DENSITY_CELLS, 12000, 2000);
 const MEMORY_CLEANUP_THRESHOLD_GB = (() => {
   const n = Number(process.env.RELAY_MEMORY_CLEANUP_GB);
   return Number.isFinite(n) && n > 0 ? n : 2.0;
@@ -3706,12 +3706,13 @@ function getRelayRollingMetrics() {
 
 // AIS aggregate state for snapshot API (server-side fanout)
 const GRID_SIZE = 2;
-const DENSITY_WINDOW = 30 * 60 * 1000; // 30 minutes
+const DENSITY_WINDOW = safeInt(process.env.AIS_DENSITY_WINDOW_MS, 60 * 60 * 1000, 5 * 60 * 1000);
 const GAP_THRESHOLD = 60 * 60 * 1000; // 1 hour
 const SNAPSHOT_INTERVAL_MS = Math.max(2000, Number(process.env.AIS_SNAPSHOT_INTERVAL_MS || 5000));
 const CANDIDATE_RETENTION_MS = 2 * 60 * 60 * 1000; // 2 hours
-const MAX_DENSITY_ZONES = 200;
-const MAX_CANDIDATE_REPORTS = 1500;
+const MAX_DENSITY_ZONES = safeInt(process.env.AIS_MAX_DENSITY_ZONES, 1200, 100);
+const MAX_CANDIDATE_REPORTS = safeInt(process.env.AIS_MAX_CANDIDATE_REPORTS, 5000, 1000);
+const MIN_VESSELS_PER_DENSITY_CELL = safeInt(process.env.AIS_MIN_VESSELS_PER_DENSITY_CELL, 1, 1);
 
 const vessels = new Map();
 const vesselHistory = new Map();
@@ -4086,7 +4087,7 @@ function detectDisruptions() {
 
 function calculateDensityZones() {
   const zones = [];
-  const allCells = Array.from(densityGrid.values()).filter((c) => c.vessels.size >= 2);
+  const allCells = Array.from(densityGrid.values()).filter((c) => c.vessels.size >= MIN_VESSELS_PER_DENSITY_CELL);
   if (allCells.length === 0) return zones;
 
   const vesselCounts = allCells.map((c) => c.vessels.size);
@@ -4094,7 +4095,7 @@ function calculateDensityZones() {
   const minVessels = Math.min(...vesselCounts);
 
   for (const [key, cell] of densityGrid) {
-    if (cell.vessels.size < 2) continue;
+    if (cell.vessels.size < MIN_VESSELS_PER_DENSITY_CELL) continue;
 
     const logMax = Math.log(maxVessels + 1);
     const logMin = Math.log(minVessels + 1);

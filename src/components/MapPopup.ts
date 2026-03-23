@@ -1,4 +1,4 @@
-import type { ConflictZone, Hotspot, NewsItem, MilitaryBase, StrategicWaterway, APTGroup, NuclearFacility, EconomicCenter, GammaIrradiator, Pipeline, UnderseaCable, CableAdvisory, RepairShip, InternetOutage, AIDataCenter, AisDisruptionEvent, SocialUnrestEvent, MilitaryFlight, MilitaryVessel, MilitaryFlightCluster, MilitaryVesselCluster, NaturalEvent, Port, Spaceport, CriticalMineralProject, CyberThreat } from '@/types';
+import type { ConflictZone, Hotspot, NewsItem, MilitaryBase, StrategicWaterway, APTGroup, NuclearFacility, EconomicCenter, GammaIrradiator, Pipeline, UnderseaCable, CableAdvisory, RepairShip, InternetOutage, AIDataCenter, AisDisruptionEvent, SocialUnrestEvent, MilitaryFlight, MilitaryVessel, MilitaryFlightCluster, MilitaryVesselCluster, NaturalEvent, Port, Spaceport, CriticalMineralProject, CyberThreat, ForceCompositionEntry } from '@/types';
 import type { AirportDelayAlert, PositionSample } from '@/services/aviation';
 import type { Earthquake } from '@/services/earthquakes';
 import type { WeatherAlert } from '@/services/weather';
@@ -14,7 +14,7 @@ import { getNaturalEventIcon } from '@/services/eonet';
 import { getHotspotEscalation, getEscalationChange24h } from '@/services/hotspot-escalation';
 import { getCableHealthRecord } from '@/services/cable-health';
 
-export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'aircraft' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub' | 'iranEvent' | 'gpsJamming';
+export type PopupType = 'conflict' | 'hotspot' | 'earthquake' | 'weather' | 'base' | 'forceComposition' | 'waterway' | 'apt' | 'cyberThreat' | 'nuclear' | 'economic' | 'irradiator' | 'pipeline' | 'cable' | 'cable-advisory' | 'repair-ship' | 'outage' | 'datacenter' | 'datacenterCluster' | 'ais' | 'protest' | 'protestCluster' | 'flight' | 'aircraft' | 'militaryFlight' | 'militaryVessel' | 'militaryFlightCluster' | 'militaryVesselCluster' | 'natEvent' | 'port' | 'spaceport' | 'mineral' | 'startupHub' | 'cloudRegion' | 'techHQ' | 'accelerator' | 'techEvent' | 'techHQCluster' | 'techEventCluster' | 'techActivity' | 'geoActivity' | 'stockExchange' | 'financialCenter' | 'centralBank' | 'commodityHub' | 'iranEvent' | 'gpsJamming';
 
 interface TechEventPopupData {
   id: string;
@@ -143,7 +143,7 @@ interface DatacenterClusterData {
 
 interface PopupData {
   type: PopupType;
-  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | PositionSample | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData | IranEventPopupData | GpsJammingPopupData;
+  data: ConflictZone | Hotspot | Earthquake | WeatherAlert | MilitaryBase | ForceCompositionEntry | StrategicWaterway | APTGroup | CyberThreat | NuclearFacility | EconomicCenter | GammaIrradiator | Pipeline | UnderseaCable | CableAdvisory | RepairShip | InternetOutage | AIDataCenter | AisDisruptionEvent | SocialUnrestEvent | AirportDelayAlert | PositionSample | MilitaryFlight | MilitaryVessel | MilitaryFlightCluster | MilitaryVesselCluster | NaturalEvent | Port | Spaceport | CriticalMineralProject | StartupHub | CloudRegion | TechHQ | Accelerator | TechEventPopupData | TechHQClusterData | TechEventClusterData | ProtestClusterData | DatacenterClusterData | TechHubActivity | GeoHubActivity | StockExchangePopupData | FinancialCenterPopupData | CentralBankPopupData | CommodityHubPopupData | IranEventPopupData | GpsJammingPopupData;
   relatedNews?: NewsItem[];
   x: number;
   y: number;
@@ -394,6 +394,8 @@ export class MapPopup {
         return this.renderWeatherPopup(data.data as WeatherAlert);
       case 'base':
         return this.renderBasePopup(data.data as MilitaryBase);
+      case 'forceComposition':
+        return this.renderForceCompositionPopup(data.data as ForceCompositionEntry);
       case 'waterway':
         return this.renderWaterwayPopup(data.data as StrategicWaterway);
       case 'apt':
@@ -922,6 +924,102 @@ export class MapPopup {
             <span class="stat-value">${base.lat.toFixed(2)}°, ${base.lon.toFixed(2)}°</span>
           </div>
         </div>
+      </div>
+    `;
+  }
+
+  private renderForceCompositionPopup(entry: ForceCompositionEntry): string {
+    const translateForceCompositionValue = (
+      group: 'side' | 'echelons' | 'displayPositionType' | 'status' | 'readiness' | 'branches' | 'unitTypes' | 'equipment',
+      value: string | undefined,
+      fallback: string,
+    ): string => {
+      const normalized = String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/^_+|_+$/g, '');
+      if (!normalized) return fallback;
+      const key = `components.deckgl.forceCompositions.${group}.${normalized}`;
+      const translated = t(key);
+      return translated && translated !== key ? translated : fallback;
+    };
+
+    const translateForceCompositionUnitField = (
+      unitId: string | undefined,
+      field: 'name' | 'notes',
+      fallback: string | undefined,
+    ): string => {
+      const normalizedId = String(unitId || '').trim();
+      if (!normalizedId) return fallback || '';
+      const key = `components.deckgl.forceCompositions.units.${normalizedId}.${field}`;
+      const translated = t(key);
+      return translated && translated !== key ? translated : (fallback || '');
+    };
+
+    const sideLabel = translateForceCompositionValue('side', entry.side, entry.side === 'red' ? 'Red' : 'Blue');
+    const badgeClass = entry.side === 'red' ? 'high' : 'elevated';
+    const formatCoords = (latitude: number | null | undefined, longitude: number | null | undefined): string => {
+      if (latitude == null || longitude == null) return t('popups.forceComposition.unavailable');
+      return `${latitude.toFixed(2)}°, ${longitude.toFixed(2)}°`;
+    };
+    const aliases = entry.aliases?.filter(Boolean) ?? [];
+    const equipmentSummary = (entry.equipmentSummary?.filter(Boolean) ?? [])
+      .map((item) => translateForceCompositionValue('equipment', item, item));
+    const sourceRefs = entry.sourceRefs?.filter(Boolean) ?? [];
+    const displayName = translateForceCompositionUnitField(entry.id, 'name', entry.name);
+    const parentName = translateForceCompositionUnitField(entry.parentId, 'name', entry.parentName);
+    const notes = translateForceCompositionUnitField(entry.id, 'notes', entry.notes);
+    const branchLabel = translateForceCompositionValue('branches', entry.branch, entry.branch);
+    const unitTypeLabel = translateForceCompositionValue('unitTypes', entry.unitType, entry.unitType);
+
+    return `
+      <div class="popup-header military">
+        <span class="popup-title">${escapeHtml(displayName.toUpperCase())}</span>
+        <span class="popup-badge ${badgeClass}">${escapeHtml(sideLabel)}</span>
+        <button class="popup-close" aria-label="${escapeHtml(t('common.close'))}">×</button>
+      </div>
+      <div class="popup-body">
+        <div class="popup-stats">
+          <div class="popup-stat">
+            <span class="stat-label">${t('popups.forceComposition.echelon')}</span>
+            <span class="stat-value">${escapeHtml(translateForceCompositionValue('echelons', entry.echelon, entry.echelon))}</span>
+          </div>
+          <div class="popup-stat">
+            <span class="stat-label">${t('popups.forceComposition.personnel')}</span>
+            <span class="stat-value">${t('components.deckgl.forceCompositions.tooltip.personnelCount', { count: entry.personnelEstimate.toLocaleString() })}</span>
+          </div>
+          <div class="popup-stat">
+            <span class="stat-label">${t('popups.forceComposition.displayPosition')}</span>
+            <span class="stat-value">${escapeHtml(translateForceCompositionValue('displayPositionType', entry.displayPositionType, entry.displayPositionType))}</span>
+          </div>
+          ${entry.status ? `<div class="popup-stat"><span class="stat-label">${t('popups.forceComposition.status')}</span><span class="stat-value">${escapeHtml(translateForceCompositionValue('status', entry.status, entry.status))}</span></div>` : ''}
+          ${entry.readiness ? `<div class="popup-stat"><span class="stat-label">${t('popups.forceComposition.readiness')}</span><span class="stat-value">${escapeHtml(translateForceCompositionValue('readiness', entry.readiness, entry.readiness))}</span></div>` : ''}
+          <div class="popup-stat">
+            <span class="stat-label">${t('popups.forceComposition.branchType')}</span>
+            <span class="stat-value">${escapeHtml(`${branchLabel} / ${unitTypeLabel}`)}</span>
+          </div>
+          ${aliases.length > 0 ? `<div class="popup-stat"><span class="stat-label">${t('popups.forceComposition.aliases')}</span><span class="stat-value">${escapeHtml(aliases.join(', '))}</span></div>` : ''}
+          <div class="popup-stat">
+            <span class="stat-label">${t('popups.forceComposition.parent')}</span>
+            <span class="stat-value">${escapeHtml(parentName || t('popups.forceComposition.none'))}</span>
+          </div>
+          <div class="popup-stat">
+            <span class="stat-label">${t('popups.forceComposition.children')}</span>
+            <span class="stat-value">${entry.childCount}</span>
+          </div>
+          <div class="popup-stat">
+            <span class="stat-label">${t('popups.forceComposition.hq')}</span>
+            <span class="stat-value">${escapeHtml(formatCoords(entry.hqLatitude, entry.hqLongitude))}</span>
+          </div>
+          <div class="popup-stat">
+            <span class="stat-label">${t('popups.forceComposition.deployment')}</span>
+            <span class="stat-value">${escapeHtml(formatCoords(entry.deploymentLatitude, entry.deploymentLongitude))}</span>
+          </div>
+          ${equipmentSummary.length > 0 ? `<div class="popup-stat"><span class="stat-label">${t('popups.forceComposition.equipment')}</span><span class="stat-value">${escapeHtml(equipmentSummary.join(', '))}</span></div>` : ''}
+          ${sourceRefs.length > 0 ? `<div class="popup-stat"><span class="stat-label">${t('popups.forceComposition.sources')}</span><span class="stat-value">${escapeHtml(sourceRefs.join(', '))}</span></div>` : ''}
+        </div>
+        ${notes ? `<p class="popup-description">${escapeHtml(notes)}</p>` : ''}
       </div>
     `;
   }

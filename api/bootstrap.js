@@ -35,6 +35,7 @@ const BOOTSTRAP_CACHE_KEYS = {
   cryptoQuotes: 'market:crypto:v1',
   gulfQuotes: 'market:gulf-quotes:v1',
   stablecoinMarkets: 'market:stablecoins:v1',
+  forceCompositionMeta: 'military:force-compositions:meta:v1',
   unrestEvents: 'unrest:events:v1',
   iranEvents: 'conflict:iran-events:v1',
   ucdpEvents: 'conflict:ucdp-events:v1',
@@ -49,7 +50,7 @@ const SLOW_KEYS = new Set([
   'sectors', 'etfFlows', 'shippingRates', 'wildfires', 'climateAnomalies',
   'cyberThreats', 'techReadiness', 'progressData', 'renewableEnergy',
   'naturalEvents',
-  'cryptoQuotes', 'gulfQuotes', 'stablecoinMarkets', 'unrestEvents', 'ucdpEvents',
+  'cryptoQuotes', 'gulfQuotes', 'stablecoinMarkets', 'forceCompositionMeta', 'unrestEvents', 'ucdpEvents',
   'techEvents',
 ]);
 const FAST_KEYS = new Set([

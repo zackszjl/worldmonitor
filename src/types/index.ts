@@ -321,6 +321,54 @@ export interface MilitaryBaseEnriched extends MilitaryBase {
   catTraining?: boolean;
 }
 
+export type ForceCompositionSide = 'red' | 'blue';
+export type ForceCompositionDisplayPositionType = 'deployment' | 'hq';
+
+export interface ForceCompositionEntry {
+  id: string;
+  name: string;
+  side: ForceCompositionSide;
+  branch: string;
+  unitType: string;
+  echelon: string;
+  personnelEstimate: number;
+  parentId?: string;
+  parentName?: string;
+  childCount: number;
+  displayLatitude: number;
+  displayLongitude: number;
+  displayPositionType: ForceCompositionDisplayPositionType;
+  hqLatitude: number | null;
+  hqLongitude: number | null;
+  deploymentLatitude: number | null;
+  deploymentLongitude: number | null;
+  countryIso2?: string;
+  notes?: string;
+  aliases?: string[];
+  status?: string;
+  readiness?: string;
+  equipmentSummary?: string[];
+  sourceRefs?: string[];
+}
+
+export interface ForceCompositionCluster {
+  latitude: number;
+  longitude: number;
+  count: number;
+  side: ForceCompositionSide;
+  dominantEchelon: string;
+  expansionZoom: number;
+}
+
+export interface ForceCompositionMeta {
+  datasetVersion: string;
+  updatedAt: string;
+  source: string;
+  unitCount: number;
+  availableEchelons: string[];
+  sides: ForceCompositionSide[];
+}
+
 export interface CableLandingPoint {
   country: string;       // ISO code
   countryName: string;
@@ -504,6 +552,7 @@ export interface PanelConfig {
 export interface MapLayers {
   conflicts: boolean;
   bases: boolean;
+  forceCompositions: boolean;
   cables: boolean;
   pipelines: boolean;
   hotspots: boolean;
