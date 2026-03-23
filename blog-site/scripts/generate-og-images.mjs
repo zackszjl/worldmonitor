@@ -31,17 +31,16 @@ function firstExistingPath(paths) {
 
 function loadFont(weight, envKey, candidates) {
   const fontPath = firstExistingPath([process.env[envKey], ...candidates]);
-  if (!fontPath) {
-    throw new Error(
-      `Unable to find a local ${weight} font for OG generation. ` +
-      `Set ${envKey} to a .ttf/.otf font file path to continue.`
-    );
-  }
+  if (!fontPath) return null;
 
   return {
     data: toArrayBuffer(readFileSync(fontPath)),
     path: fontPath,
   };
+}
+
+function isTruthy(value) {
+  return /^(1|true|yes|on)$/i.test(String(value || ''));
 }
 
 const fontDir = process.env.WM_OG_FONT_DIR;
@@ -94,6 +93,24 @@ if (pendingFiles.length === 0) {
 
 const regularFont = loadFont('regular', 'WM_OG_FONT_REGULAR', regularCandidates);
 const boldFont = loadFont('bold', 'WM_OG_FONT_BOLD', boldCandidates);
+
+if (!regularFont || !boldFont) {
+  const missing = [
+    !regularFont ? 'regular' : null,
+    !boldFont ? 'bold' : null,
+  ].filter(Boolean).join(' and ');
+  const message =
+    `Unable to find a local ${missing} font for OG generation. ` +
+    'Skipping OG image generation for this build. ' +
+    'Set WM_OG_FONT_REGULAR and WM_OG_FONT_BOLD to .ttf/.otf paths to enable it.';
+
+  if (isTruthy(process.env.WM_STRICT_OG_FONTS)) {
+    throw new Error(message);
+  }
+
+  console.warn(`[og] ${message}`);
+  process.exit(0);
+}
 
 console.log(`[og] using fonts: ${regularFont.path} | ${boldFont.path}`);
 
