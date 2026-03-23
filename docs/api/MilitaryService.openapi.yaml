@@ -312,6 +312,81 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/Error'
+    /api/military/v1/list-force-compositions:
+        get:
+            tags:
+                - MilitaryService
+            summary: ListForceCompositions
+            description: ListForceCompositions retrieves red and blue force compositions within a bounding box, with server-side clustering.
+            operationId: ListForceCompositions
+            parameters:
+                - name: ne_lat
+                  in: query
+                  required: false
+                  schema:
+                    type: number
+                    format: double
+                - name: ne_lon
+                  in: query
+                  required: false
+                  schema:
+                    type: number
+                    format: double
+                - name: sw_lat
+                  in: query
+                  required: false
+                  schema:
+                    type: number
+                    format: double
+                - name: sw_lon
+                  in: query
+                  required: false
+                  schema:
+                    type: number
+                    format: double
+                - name: zoom
+                  in: query
+                  required: false
+                  schema:
+                    type: integer
+                    format: int32
+                - name: side[]
+                  in: query
+                  required: false
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                  style: form
+                  explode: true
+                - name: echelon[]
+                  in: query
+                  required: false
+                  schema:
+                    type: array
+                    items:
+                        type: string
+                  style: form
+                  explode: true
+            responses:
+                "200":
+                    description: Successful response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ListForceCompositionsResponse'
+                "400":
+                    description: Validation error
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/ValidationError'
+                default:
+                    description: Error response
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Error'
 components:
     schemas:
         Error:
@@ -969,6 +1044,32 @@ components:
                     type: string
                 country:
                     type: string
+        ListForceCompositionsRequest:
+            type: object
+            properties:
+                neLat:
+                    type: number
+                    format: double
+                neLon:
+                    type: number
+                    format: double
+                swLat:
+                    type: number
+                    format: double
+                swLon:
+                    type: number
+                    format: double
+                zoom:
+                    type: integer
+                    format: int32
+                side:
+                    type: array
+                    items:
+                        type: string
+                echelon:
+                    type: array
+                    items:
+                        type: string
         ListMilitaryBasesResponse:
             type: object
             properties:
@@ -985,6 +1086,110 @@ components:
                     format: int32
                 truncated:
                     type: boolean
+        ListForceCompositionsResponse:
+            type: object
+            properties:
+                entries:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ForceCompositionEntry'
+                clusters:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/ForceCompositionCluster'
+                totalInView:
+                    type: integer
+                    format: int32
+                truncated:
+                    type: boolean
+                datasetVersion:
+                    type: string
+                updatedAt:
+                    type: string
+        ForceCompositionEntry:
+            type: object
+            properties:
+                id:
+                    type: string
+                name:
+                    type: string
+                side:
+                    type: string
+                branch:
+                    type: string
+                unitType:
+                    type: string
+                echelon:
+                    type: string
+                personnelEstimate:
+                    type: integer
+                    format: int32
+                parentId:
+                    type: string
+                parentName:
+                    type: string
+                childCount:
+                    type: integer
+                    format: int32
+                displayLatitude:
+                    type: number
+                    format: double
+                displayLongitude:
+                    type: number
+                    format: double
+                displayPositionType:
+                    type: string
+                hqLatitude:
+                    type: number
+                    format: double
+                hqLongitude:
+                    type: number
+                    format: double
+                deploymentLatitude:
+                    type: number
+                    format: double
+                deploymentLongitude:
+                    type: number
+                    format: double
+                countryIso2:
+                    type: string
+                notes:
+                    type: string
+                aliases:
+                    type: array
+                    items:
+                        type: string
+                status:
+                    type: string
+                readiness:
+                    type: string
+                equipmentSummary:
+                    type: array
+                    items:
+                        type: string
+                sourceRefs:
+                    type: array
+                    items:
+                        type: string
+        ForceCompositionCluster:
+            type: object
+            properties:
+                latitude:
+                    type: number
+                    format: double
+                longitude:
+                    type: number
+                    format: double
+                count:
+                    type: integer
+                    format: int32
+                side:
+                    type: string
+                dominantEchelon:
+                    type: string
+                expansionZoom:
+                    type: integer
+                    format: int32
         MilitaryBaseEntry:
             type: object
             properties:

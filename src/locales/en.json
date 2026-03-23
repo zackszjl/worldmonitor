@@ -1073,6 +1073,7 @@
         "happiness": "World Happiness",
         "speciesRecovery": "Species Recovery",
         "renewableInstallations": "Clean Energy"
+        ,"forceCompositions": "兵力编成"
       },
       "tooltip": {
         "earthquake": "Earthquake",
@@ -1100,6 +1101,69 @@
         "news": "News",
         "undisclosed": "Undisclosed",
         "stake": "stake"
+      },
+      "forceCompositions": {
+        "filters": {
+          "all": "All",
+          "red": "Red",
+          "blue": "Blue",
+          "echelon": "Echelon",
+          "allEchelons": "All echelons"
+        },
+        "side": {
+          "red": "Red",
+          "blue": "Blue"
+        },
+        "echelons": {
+          "army_group": "Army Group",
+          "front": "Front",
+          "theater": "Theater",
+          "corps": "Corps",
+          "division": "Division",
+          "brigade": "Brigade",
+          "regiment": "Regiment",
+          "battalion": "Battalion",
+          "company": "Company",
+          "platoon": "Platoon"
+        },
+        "displayPositionType": {
+          "deployment": "Deployment",
+          "hq": "HQ"
+        },
+        "status": {
+          "deployed": "Deployed",
+          "forward-positioned": "Forward-positioned",
+          "holding": "Holding",
+          "supporting": "Supporting",
+          "engaged": "Engaged",
+          "rotational": "Rotational",
+          "dispersed": "Dispersed"
+        },
+        "readiness": {
+          "high": "High",
+          "medium": "Medium",
+          "low": "Low"
+        },
+        "branches": {
+          "army": "Army",
+          "marine": "Marine",
+          "rocket_force": "Rocket Force"
+        },
+        "unitTypes": {
+          "corps": "Corps",
+          "mechanized": "Mechanized",
+          "armored": "Armored",
+          "fires": "Fires",
+          "combined_arms": "Combined Arms",
+          "motor_rifle": "Motor Rifle",
+          "air_defense": "Air Defense",
+          "littoral": "Littoral",
+          "missile": "Missile"
+        },
+        "tooltip": {
+          "personnelCount": "{{count}} personnel",
+          "unitCount": "{{count}} units"
+        }
       },
       "layerHelp": {
         "title": "Map Layers Guide",
@@ -1153,8 +1217,9 @@
           "geoHotspots": "Tension regions - color-coded by news activity level",
           "geoSanctions": "Countries under US/EU/UN economic sanctions",
           "geoProtests": "Civil unrest, demonstrations (time-filtered)",
-          "militaryBases": "US/NATO, China, Russia military installations (150+)",
-          "militaryNuclear": "Power plants, enrichment, weapons facilities",
+        "militaryBases": "US/NATO, China, Russia military installations (150+)",
+        "forceCompositions": "Red and blue order-of-battle units with cluster and point rendering by zoom",
+        "militaryNuclear": "Power plants, enrichment, weapons facilities",
           "militaryIrradiators": "Industrial gamma irradiator facilities",
           "militaryActivity": "Live military aircraft and vessel tracking",
           "infraCablesFull": "Major undersea fiber optic cables (20 backbone routes)",
@@ -1759,6 +1824,23 @@
     },
     "conflict": {
       "title": "CONFLICT ZONE"
+    },
+    "forceComposition": {
+      "echelon": "Echelon",
+      "personnel": "Personnel",
+      "displayPosition": "Display Position",
+      "status": "Status",
+      "readiness": "Readiness",
+      "branchType": "Branch / Type",
+      "aliases": "Aliases",
+      "parent": "Parent",
+      "children": "Children",
+      "hq": "HQ",
+      "deployment": "Deployment",
+      "equipment": "Equipment",
+      "sources": "Sources",
+      "none": "None",
+      "unavailable": "Unavailable"
     },
     "earthquake": {
       "levels": {

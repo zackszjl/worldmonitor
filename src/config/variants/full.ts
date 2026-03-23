@@ -58,6 +58,7 @@ export const DEFAULT_MAP_LAYERS: MapLayers = {
 
   conflicts: true,
   bases: true,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: true,
@@ -117,6 +118,7 @@ export const MOBILE_DEFAULT_MAP_LAYERS: MapLayers = {
 
   conflicts: true,
   bases: false,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: true,

@@ -71,6 +71,7 @@ const FULL_MAP_LAYERS: MapLayers = {
 
   conflicts: true,
   bases: _desktop ? false : true,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: true,
@@ -130,6 +131,7 @@ const FULL_MOBILE_MAP_LAYERS: MapLayers = {
 
   conflicts: true,
   bases: false,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: true,
@@ -230,6 +232,7 @@ const TECH_MAP_LAYERS: MapLayers = {
 
   conflicts: false,
   bases: false,
+  forceCompositions: false,
   cables: true,
   pipelines: false,
   hotspots: false,
@@ -289,6 +292,7 @@ const TECH_MOBILE_MAP_LAYERS: MapLayers = {
 
   conflicts: false,
   bases: false,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: false,
@@ -391,6 +395,7 @@ const FINANCE_MAP_LAYERS: MapLayers = {
 
   conflicts: false,
   bases: false,
+  forceCompositions: false,
   cables: true,
   pipelines: true,
   hotspots: false,
@@ -450,6 +455,7 @@ const FINANCE_MOBILE_MAP_LAYERS: MapLayers = {
 
   conflicts: false,
   bases: false,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: false,
@@ -525,6 +531,7 @@ const HAPPY_MAP_LAYERS: MapLayers = {
 
   conflicts: false,
   bases: false,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: false,
@@ -584,6 +591,7 @@ const HAPPY_MOBILE_MAP_LAYERS: MapLayers = {
 
   conflicts: false,
   bases: false,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: false,
@@ -673,6 +681,7 @@ const COMMODITY_MAP_LAYERS: MapLayers = {
 
   conflicts: false,
   bases: false,
+  forceCompositions: false,
   cables: false,
   pipelines: true,
   hotspots: false,
@@ -732,6 +741,7 @@ const COMMODITY_MOBILE_MAP_LAYERS: MapLayers = {
 
   conflicts: false,
   bases: false,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: false,
@@ -820,6 +830,7 @@ export const MOBILE_DEFAULT_MAP_LAYERS = SITE_VARIANT === 'happy'
 /** Maps map-layer toggle keys to their data-freshness source IDs (single source of truth). */
 export const LAYER_TO_SOURCE: Partial<Record<keyof MapLayers, DataSourceId[]>> = {
   military: ['opensky', 'wingbits'],
+  forceCompositions: ['force_compositions'],
   ais: ['ais'],
   natural: ['usgs'],
   weather: ['weather'],

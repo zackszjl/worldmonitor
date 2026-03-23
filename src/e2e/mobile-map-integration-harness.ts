@@ -90,6 +90,7 @@ const layers = {
 
   conflicts: false,
   bases: false,
+  forceCompositions: false,
   cables: false,
   pipelines: false,
   hotspots: true,

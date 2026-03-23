@@ -13834,6 +13834,51 @@ a.prediction-link:hover {
   border-color: rgba(68, 255, 136, 0.2);
 }
 
+.deckgl-layer-toggles .layer-toggle-extra {
+  display: grid;
+  gap: 8px;
+  padding: 0 8px 8px 34px;
+}
+
+.deckgl-layer-toggles .force-composition-side-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.deckgl-layer-toggles .force-composition-side-buttons button {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+.deckgl-layer-toggles .force-composition-side-buttons button.active {
+  border-color: rgba(68, 255, 136, 0.35);
+  background: rgba(68, 255, 136, 0.12);
+  color: var(--green);
+}
+
+.deckgl-layer-toggles .force-composition-echelon-filter {
+  display: grid;
+  gap: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.deckgl-layer-toggles .force-composition-echelon-filter select {
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 11px;
+}
+
 /* Pro early-access banner */
 .pro-banner {
   display: flex;
