@@ -1,0 +1,19 @@
+﻿{
+    "summarizeError":  null,
+    "ollamaTagsOk":  true,
+    "ok":  true,
+    "ollamaTagsError":  null,
+    "summarize":  {
+                      "errorType":  "",
+                      "fallback":  false,
+                      "provider":  "ollama",
+                      "error":  "",
+                      "model":  "llama3:latest",
+                      "statusDetail":  "",
+                      "status":  "SUMMARIZE_STATUS_SUCCESS"
+                  },
+    "ollamaModels":  [
+                         "llama3:latest",
+                         "gpt-oss:120b-cloud"
+                     ]
+}
